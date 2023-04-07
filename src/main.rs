@@ -1,21 +1,16 @@
-use diesel::prelude::*;
-
 pub mod db;
 pub mod models;
 pub mod schema;
 
 fn main() {
-    use self::schema::photos::dsl::*;
-
     let connection = &mut db::establish_connection();
+    let p1 = db::insert_photo(connection, "hello").unwrap();
+    let p2 = db::insert_photo(connection, "hello again").unwrap();
 
-    let results = photos
-        .load::<models::Photos>(connection)
-        .expect("Error loading posts");
+    println!("{:?}", p1);
+    println!("{:?}", p2);
+
+    let results = db::load_photos(connection).expect("Error loading posts");
 
     println!("{:?}", results);
-}
-
-fn insert() -> Result<i32, String> {
-    Ok(0)
 }
