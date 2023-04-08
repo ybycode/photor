@@ -9,4 +9,8 @@ edition = "2021"
 clap = { version = "4.2.1", features = ["derive"] }
 diesel = { version = "2.0.0", features = ["sqlite", "returning_clauses_for_sqlite_3_35"] }
 dotenvy = "0.15.7"
+env_logger = "0.10.0"
+lazy_static = "1.4.0"
+log = "0.4.17"
+walkdir = "2.3.3"
 

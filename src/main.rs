@@ -1,8 +1,11 @@
-use std::path::PathBuf;
+#[macro_use]
+extern crate log;
 
 use clap::{Parser, Subcommand};
+use std::path::PathBuf;
 
 pub mod db;
+pub mod files;
 pub mod models;
 pub mod schema;
 
@@ -43,6 +46,8 @@ enum Commands {
 }
 
 fn main() {
+    env_logger::init();
+
     let cli = Cli::parse();
 
     // You can check the value provided by positional arguments, or option arguments
@@ -70,8 +75,10 @@ fn main() {
         },
 
         Some(Commands::Import { directory }) => {
-            if String::len(directory) > 0 {
-                println!("Ok, good");
+            if String::len(&directory) > 0 {
+                for file in files::find_photo_files(&directory) {
+                    println!("FILEEE: {:?}", file);
+                }
             } else {
                 println!("Not ok, bad");
             }
