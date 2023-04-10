@@ -7,6 +7,7 @@ use std::path::PathBuf;
 pub mod db;
 pub mod files;
 pub mod models;
+pub mod photoexif;
 pub mod schema;
 
 #[derive(Parser)]
@@ -77,7 +78,15 @@ fn main() {
         Some(Commands::Import { directory }) => {
             if String::len(&directory) > 0 {
                 for file in files::find_photo_files(&directory) {
-                    println!("FILEEE: {:?}", file);
+                    let photo_path = file.path().to_str().unwrap();
+                    match photoexif::read(photo_path) {
+                        Ok(_exif) => {
+                            print!(".");
+                        }
+                        Err(err) => {
+                            error!("Error with file at {}: {}", photo_path, err)
+                        }
+                    }
                 }
             } else {
                 println!("Not ok, bad");
