@@ -1,6 +1,7 @@
 use lazy_static::lazy_static;
 use std::collections::HashSet;
 use std::path::Path;
+use std::path::PathBuf;
 use walkdir::{DirEntry, Error as WalkDirError, WalkDir};
 
 lazy_static! {
@@ -13,7 +14,7 @@ lazy_static! {
     };
 }
 
-pub fn find_photo_files(directory: &str) -> impl Iterator<Item = DirEntry> {
+pub fn find_photo_files(directory: &PathBuf) -> impl Iterator<Item = DirEntry> {
     WalkDir::new(directory)
         .min_depth(1)
         .into_iter()

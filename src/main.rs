@@ -4,6 +4,7 @@ extern crate log;
 use clap::{Parser, Subcommand};
 use std::path::PathBuf;
 
+pub mod checksum;
 pub mod db;
 pub mod files;
 pub mod models;
@@ -20,10 +21,6 @@ struct Cli {
     /// Sets the target repository (defaults to the current directory)
     #[arg(short, long, value_name = "DIRECTORY")]
     repo: Option<PathBuf>,
-
-    /// Turn debugging information on
-    #[arg(short, long, action = clap::ArgAction::Count)]
-    debug: u8,
 
     #[command(subcommand)]
     command: Option<Commands>,
@@ -42,7 +39,7 @@ enum Commands {
     Import {
         /// the directory to (deep) scan for photos
         #[arg(short, long)]
-        directory: String,
+        directory: PathBuf,
     },
 }
 
@@ -56,47 +53,47 @@ fn main() {
         println!("Value for config: {}", config_path.display());
     }
 
-    // You can see how many times a particular flag or argument occurred
-    // Note, only flags can have multiple occurrences
-    match cli.debug {
-        0 => println!("Debug mode is off"),
-        1 => println!("Debug mode is kind of on"),
-        2 => println!("Debug mode is on"),
-        _ => println!("Don't be crazy"),
-    }
-
     // You can check for the existence of subcommands, and if found use their
     // matches just as you would the top level cmd
     match &cli.command {
-        Some(Commands::Init { directory }) => match directory {
-            Some(_dir) => {
-                println!("dir!!!");
-            }
-            None => {}
-        },
+        Some(Commands::Init {
+            directory: opt_directory,
+        }) => {
+            init(opt_directory);
+        }
 
         Some(Commands::Import { directory }) => {
-            if String::len(&directory) > 0 {
-                for file in files::find_photo_files(&directory) {
-                    let photo_path = file.path().to_str().unwrap();
-                    match photoexif::read(photo_path) {
-                        Ok(_exif) => {
-                            print!(".");
-                        }
-                        Err(err) => {
-                            error!("Error with file at {}: {}", photo_path, err)
-                        }
-                    }
-                }
-            } else {
-                println!("Not ok, bad");
-            }
+            import(directory);
         }
 
         None => {}
     }
+}
 
-    // Continued program logic goes here...
+fn init(opt_directory: &Option<PathBuf>) {
+    let current_dir = std::env::current_dir().expect("yo");
+    let dest = opt_directory.as_ref().unwrap_or_else(|| &current_dir);
+    println!("Initialization of a new repo in {:?}", dest);
+}
+
+fn import(directory: &PathBuf) {
+    if directory.as_os_str().is_empty() {
+        println!("Not ok, bad");
+        return;
+    }
+
+    for file in files::find_photo_files(directory) {
+        let photo_path = file.path().to_str().unwrap();
+        match photoexif::read(photo_path) {
+            Ok(_exif) => {
+                print!(".");
+                println!("hash: {:?}", checksum::hash(photo_path));
+            }
+            Err(err) => {
+                error!("Error with file at {}: {}", photo_path, err)
+            }
+        }
+    }
 }
 
 // fn main_() {
