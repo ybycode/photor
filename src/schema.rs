@@ -4,5 +4,6 @@ diesel::table! {
     photos (id) {
         id -> Integer,
         path -> Text,
+        full_hash -> Binary,
     }
 }

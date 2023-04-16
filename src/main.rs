@@ -82,12 +82,14 @@ fn import(directory: &PathBuf) {
         return;
     }
 
+    let connection = &mut db::establish_connection();
     for file in files::find_photo_files(directory) {
         let photo_path = file.path().to_str().unwrap();
-        match photoexif::read(photo_path) {
-            Ok(_exif) => {
+        match checksum::hash(photo_path) {
+            Ok(hash) => {
+                let _p = db::insert_photo(connection, photo_path, hash).unwrap();
+
                 print!(".");
-                println!("hash: {:?}", checksum::hash(photo_path));
             }
             Err(err) => {
                 error!("Error with file at {}: {}", photo_path, err)
@@ -97,7 +99,6 @@ fn import(directory: &PathBuf) {
 }
 
 // fn main_() {
-//     let connection = &mut db::establish_connection();
 //     let p1 = db::insert_photo(connection, "hello").unwrap();
 //     let p2 = db::insert_photo(connection, "hello again").unwrap();
 //
