@@ -87,9 +87,20 @@ fn import(directory: &PathBuf) {
         let photo_path = file.path().to_str().unwrap();
         match checksum::hash(photo_path) {
             Ok(hash) => {
-                let _p = db::insert_photo(connection, photo_path, hash).unwrap();
-
                 print!(".");
+
+                match db::photo_lookup_by_hash(connection, hash) {
+                    Ok(_photo) => {
+                        println!("{}     already in DB, skipping...", photo_path);
+                    }
+                    Err(diesel::NotFound) => {
+                        println!("{} +++ not yet in DB, inserting...", photo_path);
+                        let _p = db::insert_photo(connection, photo_path, hash).unwrap();
+                    }
+                    Err(e) => {
+                        println!("Error querying photo: {:?}", e);
+                    }
+                }
             }
             Err(err) => {
                 error!("Error with file at {}: {}", photo_path, err)
