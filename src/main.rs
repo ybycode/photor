@@ -73,7 +73,7 @@ fn main() {
 fn init(opt_directory: &Option<PathBuf>) {
     let current_dir = std::env::current_dir().expect("yo");
     let dest = opt_directory.as_ref().unwrap_or_else(|| &current_dir);
-    println!("Initialization of a new repo in {:?}", dest);
+    println!("TODO: Initialization of a new repo in {:?}", dest);
 }
 
 fn import(directory: &PathBuf) {
@@ -92,9 +92,12 @@ fn import(directory: &PathBuf) {
                 match db::photo_lookup_by_hash(connection, hash) {
                     Ok(_photo) => {
                         println!("{}     already in DB, skipping...", photo_path);
+                        // TODO: check the file exists in the repo where it's supposed to be
                     }
                     Err(diesel::NotFound) => {
                         println!("{} +++ not yet in DB, inserting...", photo_path);
+                        // TODO: copy the file from the imported folder to the repository, and on
+                        // success, write to the DB
                         let _p = db::insert_photo(connection, photo_path, hash).unwrap();
                     }
                     Err(e) => {

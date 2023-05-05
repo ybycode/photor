@@ -1,5 +1,16 @@
 # photor (Photos Repository)
 
+## Features
+
+- [ ] Create a repository of photos, defined by:
+  - [ ] A directory
+  - [ ] An sqlite database
+- [ ] Import photos from a directory (e.g. mounted SD card) into the repository:
+  - [ ] Calculate a partial checksum of each photo found
+  - [ ] Copy the photo file if the partial checksum is not found in the database
+  - Options:
+    - [ ] Recursive, default true
+
 ## Development
 
 Start nix-shell to prepare the development environment. It'll bring rust,
