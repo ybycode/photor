@@ -85,7 +85,7 @@ fn import(directory: &PathBuf) {
     let connection = &mut db::establish_connection();
     for file in files::find_photo_files(directory) {
         let photo_path = file.path().to_str().unwrap();
-        match checksum::hash(photo_path) {
+        match checksum::hash_file_first_bytes(photo_path, 1024 * 512) {
             Ok(hash) => {
                 print!(".");
 
@@ -96,8 +96,12 @@ fn import(directory: &PathBuf) {
                     }
                     Err(diesel::NotFound) => {
                         println!("{} +++ not yet in DB, inserting...", photo_path);
-                        // TODO: copy the file from the imported folder to the repository, and on
-                        // success, write to the DB
+                        // TODO:
+                        // - [ ] read the metadata from the photo
+                        // - [ ] create a directory for the date if it doesn't exist yet,
+                        // - [ ] copy the file from the imported folder to the repository,
+                        // - [ ] in case of success, write to the DB
+                        // - [ ] run a background task to calculate and insert the sha256 in the DB.
                         let _p = db::insert_photo(connection, photo_path, hash).unwrap();
                     }
                     Err(e) => {
