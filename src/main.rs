@@ -102,7 +102,17 @@ fn import(directory: &PathBuf) {
                         // - [ ] copy the file from the imported folder to the repository,
                         // - [ ] in case of success, write to the DB
                         // - [ ] run a background task to calculate and insert the sha256 in the DB.
-                        let _p = db::insert_photo(connection, photo_path, hash).unwrap();
+                        match photoexif::read(photo_path) {
+                            Ok(pexif) => {
+                                println!("pexif: {:?}", pexif);
+                                ()
+                            }
+                            Err(e) => {
+                                println!("Error reading exif data: {:?}", e);
+                            }
+                        }
+                        // TODO: uncomment
+                        // let _p = db::insert_photo(connection, photo_path, hash).unwrap();
                     }
                     Err(e) => {
                         println!("Error querying photo: {:?}", e);
