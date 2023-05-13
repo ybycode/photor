@@ -6,19 +6,12 @@ pub struct PExif {
     pub date_time_original: String,
 }
 
-pub fn read(photo_path: &str) -> Result<PExif, String> {
-    open_photo_file(photo_path)
-        .and_then(read_file_exif)
-        .and_then(new_pexif)
+pub fn read(photo_file: &mut File) -> Result<PExif, String> {
+    read_file_exif(photo_file).and_then(new_pexif)
 }
 
-fn open_photo_file(file_path: &str) -> Result<File, String> {
-    std::fs::File::open(file_path)
-        .map_err(|err| format!("failed to open the file: {}", err.to_string()))
-}
-
-fn read_file_exif(file: File) -> Result<Exif, String> {
-    let mut bufreader = std::io::BufReader::new(&file);
+fn read_file_exif(file: &mut File) -> Result<Exif, String> {
+    let mut bufreader = std::io::BufReader::new(file);
     let exifreader = exif::Reader::new();
     exifreader
         .read_from_container(&mut bufreader)

@@ -1,6 +1,7 @@
 use lazy_static::lazy_static;
 use regex::Regex;
 use std::collections::HashSet;
+use std::fs;
 use std::path::Path;
 use std::path::PathBuf;
 use walkdir::{DirEntry, Error as WalkDirError, WalkDir};
@@ -15,7 +16,7 @@ lazy_static! {
     };
 }
 
-fn parse_date(date_string: String) -> Option<String> {
+pub fn parse_date(date_string: String) -> Option<String> {
     lazy_static! {
         static ref RE: Regex = Regex::new(r"^(\d{4})[-: ](\d{2})[-: ](\d{2})").unwrap();
     }
@@ -85,4 +86,19 @@ fn err_msg(err: WalkDirError) -> String {
     } else {
         format!("{} - unknown error", base_msg)
     }
+}
+
+pub fn create_date_folder(date: &str) -> std::io::Result<()> {
+    let path = Path::new(date);
+    if !path.exists() {
+        fs::create_dir(date)?;
+    }
+    Ok(())
+}
+
+pub fn copy_file_to_date_folder(src: &str, date: &str) -> std::io::Result<()> {
+    let src_path = Path::new(src);
+    let dest_path = Path::new(date).join(src_path.file_name().unwrap());
+    fs::copy(src, dest_path)?;
+    Ok(())
 }

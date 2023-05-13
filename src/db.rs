@@ -33,12 +33,20 @@ pub fn insert_photo(
         .get_result(conn)
 }
 
-pub fn photo_lookup_by_hash(conn: &mut SqliteConnection, hash: u128) -> QueryResult<Photo> {
+pub fn photo_lookup_by_hash(
+    conn: &mut SqliteConnection,
+    hash: u128,
+) -> Result<Option<Photo>, String> {
     use crate::schema::photos;
 
     let target_hash = hash.to_be_bytes().to_vec();
 
-    photos::table
+    match photos::table
         .filter(photos::full_hash.eq(target_hash))
         .first(conn)
+    {
+        Ok(photo) => Ok(Some(photo)),
+        Err(diesel::NotFound) => Ok(None),
+        Err(error) => Err(error.to_string()),
+    }
 }
