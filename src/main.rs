@@ -90,13 +90,15 @@ fn import(directory: &PathBuf) -> Result<String, String> {
 
         let mut file = File::open(photo_path).map_err(|_| "Failed to open the file")?;
         let hash = checksum::hash_file_first_bytes(&mut file, 1024 * 512)?;
-        match db::photo_lookup_by_hash(connection, hash)? {
+        // TODO: see how to avoid the clone()
+        match db::photo_lookup_by_hash(connection, hash.clone())? {
             Some(_photo) => {
                 println!("{}     already in DB, skipping...", photo_path);
                 // TODO: check the file exists in the repo where it's supposed to be
             }
             None => {
-                println!("{} +++ not yet in DB, inserting...", photo_path);
+                // println!("{} +++ not yet in DB, inserting...", photo_path);
+                println!("file {} of hash {} not yet in DB? Weird!", photo_path, hash);
                 // TODO:
                 // - [ ] read the metadata from the photo
                 // - [ ] create a directory for the date if it doesn't exist yet,
@@ -105,7 +107,8 @@ fn import(directory: &PathBuf) -> Result<String, String> {
                 // - [ ] run a background task to calculate and insert the sha256 in the DB.
                 file.seek(SeekFrom::Start(0)).expect("");
 
-                let _r = import_photo(connection, &mut file, photo_path, hash);
+                import_photo(connection, &mut file, photo_path, hash).unwrap();
+                return Ok("yoooo".to_string());
             }
         }
     }
@@ -117,7 +120,7 @@ fn import_photo(
     connection: &mut SqliteConnection,
     file: &mut File,
     file_path: &str,
-    file_partial_hash: u128,
+    file_partial_hash: String,
 ) -> Result<String, String> {
     // The exif info we're interested in is extracted and returned in this struct:
     let pexif = photoexif::read(file)?;

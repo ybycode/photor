@@ -5,5 +5,6 @@ diesel::table! {
         id -> Integer,
         path -> Text,
         full_hash -> Binary,
+        partial_hash -> Text,
     }
 }
