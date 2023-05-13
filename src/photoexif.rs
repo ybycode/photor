@@ -1,4 +1,4 @@
-use exif::{DateTime, Exif, In, Tag, Value};
+use exif::{Exif, Tag};
 use std::fs::File;
 
 #[derive(Debug)]
@@ -25,21 +25,15 @@ fn read_file_exif(file: File) -> Result<Exif, String> {
         .map_err(|err| format!("failed to read the EXIF data: {}", err.to_string()))
 }
 
+extern crate exif;
+
 fn read_datetime(exif: Exif) -> Result<String, String> {
-    exif.get_field(Tag::DateTimeOriginal, In::PRIMARY)
-        .ok_or(String::from("No DateTimeOriginal exif data found"))
-        .and_then(|field| {
-            if let Value::Ascii(_) = field.value {
-                Ok(field.value.display_as(field.tag).to_string())
-            } else {
-                Err(String::from(
-                    "Unexpected value found for DateTimeOriginal field",
-                ))
-            }
-        })
-    // .and_then(|str_date| {
-    // DateTime::from_ascii(str_date.as_bytes()).map_err(|err| format!("yooo {}", err))
-    // })
+    for field in exif.fields() {
+        if let Tag::DateTime = field.tag {
+            return Ok(field.value.display_as(field.tag).to_string());
+        }
+    }
+    Err("DateTime tag not found".to_string())
 }
 
 fn new_pexif(exif: Exif) -> Result<PExif, String> {

@@ -1,4 +1,5 @@
 use lazy_static::lazy_static;
+use regex::Regex;
 use std::collections::HashSet;
 use std::path::Path;
 use std::path::PathBuf;
@@ -12,6 +13,22 @@ lazy_static! {
             .map(|ext| ext.to_lowercase())
             .collect()
     };
+}
+
+fn parse_date(date_string: String) -> Option<String> {
+    lazy_static! {
+        static ref RE: Regex = Regex::new(r"^(\d{4})[-: ](\d{2})[-: ](\d{2})").unwrap();
+    }
+
+    if let Some(captures) = RE.captures(&date_string) {
+        let year = captures.get(1).unwrap().as_str();
+        let month = captures.get(2).unwrap().as_str();
+        let day = captures.get(3).unwrap().as_str();
+
+        Some(format!("{}-{}-{}", year, month, day))
+    } else {
+        None
+    }
 }
 
 pub fn find_photo_files(directory: &PathBuf) -> impl Iterator<Item = DirEntry> {
