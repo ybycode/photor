@@ -1,49 +1,27 @@
-use exif::{Exif, Tag};
-use std::fs::File;
+use serde::Deserialize;
+use std::process::Command;
 
-#[derive(Debug)]
+#[derive(Debug, Deserialize)]
 pub struct PExif {
-    pub date_time_original: String,
+    pub DateTimeOriginal: String,
 }
 
-pub fn read(photo_file: &mut File) -> Result<PExif, String> {
-    read_file_exif(photo_file).and_then(new_pexif)
+pub fn read(photo_path: &str) -> Result<PExif, String> {
+    let output = Command::new("exiftool")
+        .arg("-json")
+        .arg(photo_path)
+        .output()
+        .map_err(|_err| format!("failed to execute process"))?;
+
+    parse_json(output.stdout)
+        .map_err(|err| format!("Failed to parse the JSON to a PExif: {:?}", err))
 }
 
-fn read_file_exif(file: &mut File) -> Result<Exif, String> {
-    let mut bufreader = std::io::BufReader::new(file);
-    let exifreader = exif::Reader::new();
-    exifreader
-        .read_from_container(&mut bufreader)
-        .map_err(|err| format!("failed to read the EXIF data: {}", err.to_string()))
-}
+fn parse_json(data: Vec<u8>) -> Result<PExif, String> {
+    // exiftool returns an array containing one object (the EXIF), hence the Vec here.
+    let mut datas: Vec<PExif> = serde_json::from_slice(&data).map_err(|err| err.to_string())?;
 
-extern crate exif;
-
-fn read_datetime(exif: Exif) -> Result<String, String> {
-    for field in exif.fields() {
-        if let Tag::DateTime = field.tag {
-            return Ok(field.value.display_as(field.tag).to_string());
-        }
-    }
-    Err("DateTime tag not found".to_string())
-}
-
-fn new_pexif(exif: Exif) -> Result<PExif, String> {
-    read_datetime(exif).map(|str_date| PExif {
-        date_time_original: str_date,
-    })
-}
-
-// helper function
-pub fn print_exif_data(exif_data: Exif) -> Exif {
-    for f in exif_data.fields() {
-        println!(
-            "{} {} {}",
-            f.tag,
-            f.ifd_num,
-            f.display_value().with_unit(&exif_data)
-        );
-    }
-    exif_data
+    // pop is used to remove the value from the Vec, so that the PExif *value* can be returned,
+    // without problems of lifetimes.
+    datas.pop().ok_or("No EXIF data found?".to_string())
 }

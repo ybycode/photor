@@ -4,7 +4,6 @@ extern crate log;
 use clap::{Parser, Subcommand};
 use diesel::sqlite::SqliteConnection;
 use std::fs::File;
-use std::io::{Seek, SeekFrom};
 use std::path::PathBuf;
 
 pub mod checksum;
@@ -93,22 +92,21 @@ fn import(directory: &PathBuf) -> Result<String, String> {
         // TODO: see how to avoid the clone()
         match db::photo_lookup_by_hash(connection, hash.clone())? {
             Some(_photo) => {
-                println!("{}     already in DB, skipping...", photo_path);
+                println!("{}  already in DB, skipping...", photo_path);
                 // TODO: check the file exists in the repo where it's supposed to be
             }
             None => {
                 // println!("{} +++ not yet in DB, inserting...", photo_path);
-                println!("file {} of hash {} not yet in DB? Weird!", photo_path, hash);
+                println!("{} not yet in DB. Inserting...", photo_path);
                 // TODO:
-                // - [ ] read the metadata from the photo
-                // - [ ] create a directory for the date if it doesn't exist yet,
-                // - [ ] copy the file from the imported folder to the repository,
+                // - [x] read the metadata from the photo
+                // - [x] create a directory for the date if it doesn't exist yet,
+                // - [ ] copy the file from the imported folder to the repository, first
+                // with a temporary name, then renaming it on success.
                 // - [ ] in case of success, write to the DB
                 // - [ ] run a background task to calculate and insert the sha256 in the DB.
-                file.seek(SeekFrom::Start(0)).expect("");
 
-                import_photo(connection, &mut file, photo_path, hash).unwrap();
-                return Ok("yoooo".to_string());
+                import_photo(connection, photo_path, hash).unwrap();
             }
         }
     }
@@ -118,15 +116,14 @@ fn import(directory: &PathBuf) -> Result<String, String> {
 
 fn import_photo(
     connection: &mut SqliteConnection,
-    file: &mut File,
     file_path: &str,
     file_partial_hash: String,
 ) -> Result<String, String> {
     // The exif info we're interested in is extracted and returned in this struct:
-    let pexif = photoexif::read(file)?;
+    let pexif = photoexif::read(file_path)?;
     // the date YYYY-MM-DD when the photo was taken is parsed:
     let date =
-        files::parse_date(pexif.date_time_original).ok_or("No valid date found".to_string())?;
+        files::parse_date(pexif.DateTimeOriginal).ok_or("No valid date found".to_string())?;
 
     // create a folder named after this date if it doesn't exist already:
     files::create_date_folder(&date).map_err(|error| {
