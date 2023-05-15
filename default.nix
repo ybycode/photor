@@ -1,16 +1,22 @@
 { pkgs ? import <nixpkgs> {} }:
-  pkgs.mkShell rec {
-    buildInputs = with pkgs; [
-      clang
-      exiftool
-      rustup
-      sqlite
-    ];
-    RUSTC_VERSION = pkgs.lib.readFile ./rust-toolchain;
-    # https://github.com/rust-lang/rust-bindgen#environment-variables
-    LIBCLANG_PATH = pkgs.lib.makeLibraryPath [ pkgs.llvmPackages_latest.libclang.lib ];
-    shellHook = ''
-      export PATH=$PATH:''${CARGO_HOME:-~/.cargo}/bin
-      export PATH=$PATH:''${RUSTUP_HOME:-~/.rustup}/toolchains/$RUSTC_VERSION-x86_64-unknown-linux-gnu/bin/
-      '';
-  }
+
+let
+  myApp = pkgs.rustPlatform.buildRustPackage rec {
+    name = "photor";
+    version = "0.1.0";
+    src = pkgs.lib.cleanSource ./.;
+
+    cargoSha256 = "sha256-nNwKDHJgjO4VFeIWAy6pB9+rFWr4JCsgC8Fu7g7nycA=";
+    buildInputs = with pkgs; [ sqlite pkg-config ];
+  };
+
+  wrapper = pkgs.writeShellScriptBin "${myApp.name}-wrapper" ''
+    # Add exiftool to the PATH
+    export PATH="${pkgs.exiftool}/bin:$PATH"
+
+    exec ${myApp}/bin/${myApp.name} "$@"
+  '';
+
+in {
+  inherit myApp wrapper;
+}

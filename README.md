@@ -21,6 +21,12 @@ $ nix-shell
 [nix-shell:~/code/photor]$
 ```
 
+## Build
+
+```
+$ nix-build -A wrapper
+```
+
 ### Database migrations
 
 ```bash
