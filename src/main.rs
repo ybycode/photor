@@ -101,9 +101,9 @@ fn import(directory: &PathBuf) -> Result<String, String> {
                 // TODO:
                 // - [x] read the metadata from the photo
                 // - [x] create a directory for the date if it doesn't exist yet,
-                // - [ ] copy the file from the imported folder to the repository, first
+                // - [x] copy the file from the imported folder to the repository, first
                 // with a temporary name, then renaming it on success.
-                // - [ ] in case of success, write to the DB
+                // - [x] in case of success, write to the DB
                 // - [ ] run a background task to calculate and insert the sha256 in the DB.
 
                 import_photo(connection, photo_path, hash).unwrap();

@@ -96,9 +96,32 @@ pub fn create_date_folder(date: &str) -> std::io::Result<()> {
     Ok(())
 }
 
-pub fn copy_file_to_date_folder(src: &str, date: &str) -> std::io::Result<()> {
+/// Copies the file at src to a directory named after the given date.
+/// The copy happens in 2 steps to avoid to get partially copied files on disc
+/// in the case where the process is interrupted mid-way:
+/// 1. the file is copied to the destination folder but named with `_temp` as suffix,
+/// 2. on copy completion, the temporary file is renamed to its original file name.
+/// TODO: deal with the case where a temp file already exists.
+pub fn copy_file_to_date_folder(src: &str, date: &str) -> Result<(), String> {
+    let dest_folder = Path::new(date);
+
     let src_path = Path::new(src);
-    let dest_path = Path::new(date).join(src_path.file_name().unwrap());
-    fs::copy(src, dest_path)?;
-    Ok(())
+
+    let file_name = src_path.file_name().unwrap();
+    let file_name_temp = format!("{}.temp", file_name.to_string_lossy());
+
+    let dest_path = dest_folder.join(file_name);
+    let dest_path_temp = dest_folder.join(&file_name_temp);
+
+    match fs::copy(src, &dest_path_temp) {
+        Ok(_size) => match fs::rename(&dest_path_temp, &dest_path) {
+            Ok(_) => Ok(()),
+            Err(err) => {
+                println!("Partially copied file cleanup...");
+                let _ = fs::remove_file(&dest_path_temp);
+                Err(err.to_string())
+            }
+        },
+        Err(err) => Err(err.to_string()),
+    }
 }
