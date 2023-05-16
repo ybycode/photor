@@ -3,8 +3,9 @@
 diesel::table! {
     photos (id) {
         id -> Integer,
-        path -> Text,
-        full_hash -> Binary,
         partial_hash -> Text,
+        filename -> Text,
+        directory -> Text,
+        full_sha256_hash -> Text,
     }
 }

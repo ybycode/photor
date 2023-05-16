@@ -20,12 +20,14 @@ pub fn load_photos(conn: &mut SqliteConnection) -> Result<Vec<Photo>, diesel::re
 
 pub fn insert_photo(
     conn: &mut SqliteConnection,
-    photo_path: &str,
-    hash: String,
+    partial_hash_: String,
+    filename_: String,
+    directory_: String,
 ) -> Result<Photo, diesel::result::Error> {
     let new_photo = NewPhoto {
-        path: photo_path,
-        partial_hash: hash,
+        partial_hash: partial_hash_,
+        filename: filename_,
+        directory: directory_,
     };
 
     diesel::insert_into(photos)

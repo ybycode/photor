@@ -4,7 +4,7 @@ extern crate log;
 use clap::{Parser, Subcommand};
 use diesel::sqlite::SqliteConnection;
 use std::fs::File;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 pub mod checksum;
 pub mod db;
@@ -85,19 +85,19 @@ fn import(directory: &PathBuf) -> Result<String, String> {
 
     let connection = &mut db::establish_connection();
     for file in files::find_photo_files(directory) {
-        let photo_path = file.path().to_str().unwrap();
+        let photo_path = file.path();
 
         let mut file = File::open(photo_path).map_err(|_| "Failed to open the file")?;
         let hash = checksum::hash_file_first_bytes(&mut file, 1024 * 512)?;
         // TODO: see how to avoid the clone()
         match db::photo_lookup_by_hash(connection, hash.clone())? {
             Some(_photo) => {
-                println!("{}  already in DB, skipping...", photo_path);
+                println!("{}  already in DB, skipping...", photo_path.display());
                 // TODO: check the file exists in the repo where it's supposed to be
             }
             None => {
                 // println!("{} +++ not yet in DB, inserting...", photo_path);
-                println!("{} not yet in DB. Inserting...", photo_path);
+                println!("{} not yet in DB. Inserting...", photo_path.display());
                 // TODO:
                 // - [x] read the metadata from the photo
                 // - [x] create a directory for the date if it doesn't exist yet,
@@ -116,7 +116,7 @@ fn import(directory: &PathBuf) -> Result<String, String> {
 
 fn import_photo(
     connection: &mut SqliteConnection,
-    file_path: &str,
+    file_path: &Path,
     file_partial_hash: String,
 ) -> Result<String, String> {
     // The exif info we're interested in is extracted and returned in this struct:
@@ -136,9 +136,15 @@ fn import_photo(
 
     // copy the file to this folder:
     files::copy_file_to_date_folder(file_path, &date)
-        .map_err(|error| format!("Failed to copy the file {}: {}", file_path, error))?;
+        .map_err(|error| format!("Failed to copy the file {}: {}", file_path.display(), error))?;
+
+    let filename = file_path
+        .file_name()
+        .unwrap()
+        .to_string_lossy()
+        .into_owned();
 
     // insertion in the database!
-    let _p = db::insert_photo(connection, file_path, file_partial_hash);
-    Ok(file_path.to_string())
+    db::insert_photo(connection, file_partial_hash, filename, date).unwrap();
+    Ok(file_path.display().to_string())
 }

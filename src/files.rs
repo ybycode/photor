@@ -9,7 +9,7 @@ use walkdir::{DirEntry, Error as WalkDirError, WalkDir};
 lazy_static! {
     static ref PHOTO_FILES_EXTENSIONS: HashSet<String> = {
         // here are defined the file extensions looked for by the WalkDir iterator:
-        ["jpg", "jpeg", "png", "raw", "raf"]
+        ["jpg", "jpeg", "mp4", "png", "raw", "raf"]
             .iter()
             .map(|ext| ext.to_lowercase())
             .collect()
@@ -102,7 +102,7 @@ pub fn create_date_folder(date: &str) -> std::io::Result<()> {
 /// 1. the file is copied to the destination folder but named with `_temp` as suffix,
 /// 2. on copy completion, the temporary file is renamed to its original file name.
 /// TODO: deal with the case where a temp file already exists.
-pub fn copy_file_to_date_folder(src: &str, date: &str) -> Result<(), String> {
+pub fn copy_file_to_date_folder(src: &Path, date: &str) -> Result<(), String> {
     let dest_folder = Path::new(date);
 
     let src_path = Path::new(src);

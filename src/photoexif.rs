@@ -1,4 +1,5 @@
 use serde::Deserialize;
+use std::path::Path;
 use std::process::Command;
 
 #[derive(Debug, Deserialize)]
@@ -6,7 +7,7 @@ pub struct PExif {
     pub DateTimeOriginal: String,
 }
 
-pub fn read(photo_path: &str) -> Result<PExif, String> {
+pub fn read(photo_path: &Path) -> Result<PExif, String> {
     let output = Command::new("exiftool")
         .arg("-json")
         .arg(photo_path)
