@@ -10,7 +10,7 @@ let
     buildInputs = with pkgs; [ sqlite pkg-config ];
   };
 
-  wrapper = pkgs.writeShellScriptBin "${myApp.name}-wrapper" ''
+  wrapper = pkgs.writeShellScriptBin "${myApp.name}" ''
     # Add exiftool to the PATH
     export PATH="${pkgs.exiftool}/bin:$PATH"
 

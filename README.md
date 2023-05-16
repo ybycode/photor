@@ -27,6 +27,12 @@ $ nix-shell
 $ nix-build -A wrapper
 ```
 
+## Installation
+
+```
+$ nix-env -f default.nix -iA wrapper
+```
+
 ### Database migrations
 
 ```bash
