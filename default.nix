@@ -1,10 +1,15 @@
 { pkgs ? import <nixpkgs> {} }:
 
 let
+  src = builtins.fetchGit {
+    url = "https://github.com/ybycode/photor.git";
+    rev = "test_nix_build";
+  };
+
   myApp = pkgs.rustPlatform.buildRustPackage rec {
     name = "photor";
     version = "0.1.0";
-    src = pkgs.lib.cleanSource ./.;
+    src = src;
 
     cargoSha256 = "sha256-nNwKDHJgjO4VFeIWAy6pB9+rFWr4JCsgC8Fu7g7nycA=";
     buildInputs = with pkgs; [ sqlite ];
