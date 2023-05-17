@@ -33,6 +33,15 @@ $ nix-build -A wrapper
 $ nix-env -f default.nix -iA wrapper
 ```
 
+### Troubleshooting
+
+At some point the installation was failing with:
+```
+error: this derivation has bad 'meta.outputsToInstall'
+```
+
+Running `$ nix-env -u --always` solved the problem.
+
 ### Database migrations
 
 ```bash
