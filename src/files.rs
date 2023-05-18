@@ -3,7 +3,6 @@ use regex::Regex;
 use std::collections::HashSet;
 use std::fs;
 use std::path::Path;
-use std::path::PathBuf;
 use walkdir::{DirEntry, Error as WalkDirError, WalkDir};
 
 lazy_static! {
@@ -32,7 +31,7 @@ pub fn parse_date(date_string: String) -> Option<String> {
     }
 }
 
-pub fn find_photo_files(directory: &PathBuf) -> impl Iterator<Item = DirEntry> {
+pub fn find_photo_files(directory: &Path) -> impl Iterator<Item = DirEntry> {
     WalkDir::new(directory)
         .min_depth(1)
         .into_iter()

@@ -71,12 +71,12 @@ fn main() {
 }
 
 fn init(opt_directory: &Option<PathBuf>) {
-    let current_dir = std::env::current_dir().expect("yo");
+    let current_dir = std::env::current_dir().expect("Failed to get the current directory");
     let dest = opt_directory.as_ref().unwrap_or_else(|| &current_dir);
     println!("TODO: Initialization of a new repo in {:?}", dest);
 }
 
-fn import(directory: &PathBuf) {
+fn import(directory: &Path) {
     let connection = &mut db::establish_connection();
     for file in files::find_photo_files(directory) {
         let photo_path = file.path();
@@ -116,7 +116,9 @@ fn import(directory: &PathBuf) {
         }
 
         info!("{} not yet in DB. Inserting...", photo_path.display());
-        import_photo(connection, photo_path, hash).unwrap();
+        if let Err(err) = import_photo(connection, photo_path, hash) {
+            error!("Failed to import {}: {}", photo_path.display(), err);
+        }
     }
 }
 
@@ -151,6 +153,7 @@ fn import_photo(
         .into_owned();
 
     // insertion in the database!
-    db::insert_photo(connection, file_partial_hash, filename, date).unwrap();
+    db::insert_photo(connection, file_partial_hash, filename, date)
+        .map_err(|error| format!("Failed to insert photo into the database: {}", error))?;
     Ok(file_path.display().to_string())
 }
