@@ -3,6 +3,8 @@ extern crate log;
 
 use clap::{Parser, Subcommand};
 use diesel::sqlite::SqliteConnection;
+use env_logger::Env;
+use log::{error, info};
 use std::fs::File;
 use std::path::{Path, PathBuf};
 
@@ -46,14 +48,10 @@ enum Commands {
 }
 
 fn main() {
-    env_logger::init();
+    // if no environment variables are set to define th elog level, "info" is the value by default.
+    env_logger::Builder::from_env(Env::default().default_filter_or("info")).init();
 
     let cli = Cli::parse();
-
-    // You can check the value provided by positional arguments, or option arguments
-    if let Some(config_path) = cli.config.as_deref() {
-        println!("Value for config: {}", config_path.display());
-    }
 
     // You can check for the existence of subcommands, and if found use their
     // matches just as you would the top level cmd
@@ -78,40 +76,48 @@ fn init(opt_directory: &Option<PathBuf>) {
     println!("TODO: Initialization of a new repo in {:?}", dest);
 }
 
-fn import(directory: &PathBuf) -> Result<String, String> {
-    if directory.as_os_str().is_empty() {
-        return Err("Not ok, bad".to_string());
-    }
-
+fn import(directory: &PathBuf) {
     let connection = &mut db::establish_connection();
     for file in files::find_photo_files(directory) {
         let photo_path = file.path();
 
-        let mut file = File::open(photo_path).map_err(|_| "Failed to open the file")?;
-        let hash = checksum::hash_file_first_bytes(&mut file, 1024 * 512)?;
+        let mut file = match File::open(photo_path).map_err(|_| "Failed to open the file") {
+            Ok(file) => file,
+
+            Err(err) => {
+                error!("Failed to open the file {}: {}", photo_path.display(), err);
+                continue;
+            }
+        };
+
+        let hash = match checksum::hash_file_first_bytes(&mut file, 1024 * 512) {
+            Ok(hash) => hash,
+
+            Err(err) => {
+                error!(
+                    "Failed to calculate the partial hash of the file {}: {}",
+                    photo_path.display(),
+                    err
+                );
+                continue;
+            }
+        };
+
         // TODO: see how to avoid the clone()
-        match db::photo_lookup_by_hash(connection, hash.clone())? {
+        match db::photo_lookup_by_hash(connection, hash.clone())
+            .expect("Failed to query the database")
+        {
             Some(_photo) => {
-                println!("{}  already in DB, skipping...", photo_path.display());
-                // TODO: check the file exists in the repo where it's supposed to be
+                info!("{}  already in DB, skipping...", photo_path.display());
+                continue;
             }
-            None => {
-                // println!("{} +++ not yet in DB, inserting...", photo_path);
-                println!("{} not yet in DB. Inserting...", photo_path.display());
-                // TODO:
-                // - [x] read the metadata from the photo
-                // - [x] create a directory for the date if it doesn't exist yet,
-                // - [x] copy the file from the imported folder to the repository, first
-                // with a temporary name, then renaming it on success.
-                // - [x] in case of success, write to the DB
-                // - [ ] run a background task to calculate and insert the sha256 in the DB.
 
-                import_photo(connection, photo_path, hash).unwrap();
-            }
+            None => {}
         }
-    }
 
-    Ok("yoo".to_string())
+        info!("{} not yet in DB. Inserting...", photo_path.display());
+        import_photo(connection, photo_path, hash).unwrap();
+    }
 }
 
 fn import_photo(
