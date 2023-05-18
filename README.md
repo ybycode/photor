@@ -56,3 +56,48 @@ $ diesel migration redo
 ```bash
 cargo run -- --help
 ```
+
+# TODO
+
+## General
+
+- [ ] show the CLI help when no arguments are given
+- [ ] clean code mess ¯\_(ツ)_/¯
+
+## Database
+
+- [ ] integration of migrations files in the build
+- [ ] database initialization command
+- [ ] database migration command
+
+To be added in the DB for each photo:
+
+- [ ] exif: original date
+- [ ] exif: camera make
+- [ ] exif: camera model
+- [ ] file size
+- [ ] sha256sum
+
+## Maintenance
+
+- [ ] check if all photos in database have their corresponding file on disk
+- [ ] check that files on disk match the data in DB (+ checksum check)
+- [ ] command to rebuild / complete database entries missing data
+
+## Repository
+
+- [ ] command to output simple stats:
+  - [ ] size on disk
+  - [ ] number of files (photos / videos)
+  - [ ] last time since maintenance run
+
+## Disc burn utilities
+
+- [ ] photos selection from start date / photo DB id that fits on a disc of some capacity
+- [ ] see xorriso integration or input generation
+
+## Web server
+
+- [ ] generate thumbnails of pictures
+- [ ] serve the repository for reading via HTTP
+- [ ] photos tournament to find the best ones
