@@ -4,7 +4,8 @@ use std::process::Command;
 
 #[derive(Debug, Deserialize)]
 pub struct PExif {
-    pub DateTimeOriginal: String,
+    #[serde(rename = "CreateDate")]
+    pub create_date: String,
 }
 
 pub fn read(photo_path: &Path) -> Result<PExif, String> {

@@ -130,8 +130,7 @@ fn import_photo(
     // The exif info we're interested in is extracted and returned in this struct:
     let pexif = photoexif::read(file_path)?;
     // the date YYYY-MM-DD when the photo was taken is parsed:
-    let date =
-        files::parse_date(pexif.DateTimeOriginal).ok_or("No valid date found".to_string())?;
+    let date = files::parse_date(pexif.create_date).ok_or("No valid date found".to_string())?;
 
     // create a folder named after this date if it doesn't exist already:
     files::create_date_folder(&date).map_err(|error| {
