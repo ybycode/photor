@@ -46,6 +46,9 @@ enum Commands {
         #[arg(short, long)]
         directory: PathBuf,
     },
+
+    /// Run database migrations
+    Migrate,
 }
 
 fn main() {
@@ -65,6 +68,10 @@ fn main() {
 
         Some(Commands::Import { directory }) => {
             import(directory);
+        }
+
+        Some(Commands::Migrate {}) => {
+            db::run_migrations();
         }
 
         None => {}

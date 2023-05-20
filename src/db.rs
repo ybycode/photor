@@ -5,6 +5,17 @@ use diesel::sqlite::SqliteConnection;
 use dotenvy::dotenv;
 use std::env;
 
+use diesel_migrations::{embed_migrations, EmbeddedMigrations, MigrationHarness};
+pub const MIGRATIONS: EmbeddedMigrations = embed_migrations!("./migrations");
+
+pub fn run_migrations() {
+    let mut conn = establish_connection();
+
+    let migrations = conn.run_pending_migrations(MIGRATIONS).unwrap();
+    info!("Ran {} migration(s)", migrations.len());
+    ()
+}
+
 pub fn establish_connection() -> SqliteConnection {
     dotenv().ok();
 
