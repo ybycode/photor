@@ -31,6 +31,12 @@ pub fn parse_date(date_string: String) -> Option<String> {
     }
 }
 
+pub fn file_size_bytes(filepath: &Path) -> Result<u64, String> {
+    fs::metadata(filepath)
+        .map(|meta| meta.len())
+        .map_err(|err| err.to_string())
+}
+
 pub fn find_photo_files(directory: &Path) -> impl Iterator<Item = DirEntry> {
     WalkDir::new(directory)
         .min_depth(1)

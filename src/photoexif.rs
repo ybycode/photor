@@ -6,6 +6,50 @@ use std::process::Command;
 pub struct PExif {
     #[serde(rename = "CreateDate")]
     pub create_date: String,
+
+    // ------------------------------
+    // file:
+    #[serde(rename = "ImageHeight")]
+    pub image_height: Option<u32>,
+
+    #[serde(rename = "ImageWidth")]
+    pub image_width: Option<u32>,
+
+    #[serde(rename = "MIMEType")]
+    pub mime_type: Option<String>,
+
+    // ------------------------------
+    // Shot:
+    #[serde(rename = "ISO")]
+    pub iso: Option<u32>,
+
+    #[serde(rename = "ApertureValue")]
+    pub aperture: Option<f32>,
+
+    #[serde(rename = "ShutterSpeedValue")]
+    pub shutter_speed: Option<String>,
+
+    #[serde(rename = "FocalLength")]
+    pub focal_length: Option<String>,
+
+    // ------------------------------
+    // Camera:
+    #[serde(rename = "Make")]
+    pub make: Option<String>,
+
+    #[serde(rename = "Model")]
+    pub model: Option<String>,
+
+    // ------------------------------
+    // Lens:
+    #[serde(rename = "LensInfo")]
+    pub lens_info: Option<String>,
+
+    #[serde(rename = "LensMake")]
+    pub lens_make: Option<String>,
+
+    #[serde(rename = "LensModel")]
+    pub lens_model: Option<String>,
 }
 
 pub fn read(photo_path: &Path) -> Result<PExif, String> {

@@ -1,0 +1,13 @@
+alter table photos drop column file_size_bytes;
+alter table photos drop column image_height;
+alter table photos drop column image_width;
+alter table photos drop column mime_type;
+alter table photos drop column iso;
+alter table photos drop column aperture;
+alter table photos drop column shutter_speed;
+alter table photos drop column focal_length;
+alter table photos drop column make;
+alter table photos drop column model;
+alter table photos drop column lens_info;
+alter table photos drop column lens_make;
+alter table photos drop column lens_model;

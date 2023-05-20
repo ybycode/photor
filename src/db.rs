@@ -20,28 +20,16 @@ pub fn load_photos(conn: &mut SqliteConnection) -> Result<Vec<Photo>, diesel::re
 
 pub fn insert_photo(
     conn: &mut SqliteConnection,
-    partial_hash_: String,
-    filename_: String,
-    directory_: String,
+    photo: &NewPhoto,
 ) -> Result<Photo, diesel::result::Error> {
-    let new_photo = NewPhoto {
-        partial_hash: partial_hash_,
-        filename: filename_,
-        directory: directory_,
-    };
-
-    diesel::insert_into(photos)
-        .values(&new_photo)
-        .get_result(conn)
+    diesel::insert_into(photos).values(photo).get_result(conn)
 }
 
-pub fn photo_lookup_by_hash(
+pub fn photo_lookup_by_partial_hash(
     conn: &mut SqliteConnection,
     hash: String,
 ) -> Result<Option<Photo>, String> {
     use crate::schema::photos;
-
-    // let target_hash = hash.to_be_bytes().to_vec();
 
     match photos::table
         .filter(photos::partial_hash.eq(hash))

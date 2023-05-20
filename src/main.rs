@@ -1,6 +1,7 @@
 #[macro_use]
 extern crate log;
 
+use crate::models::NewPhoto;
 use clap::{Parser, Subcommand};
 use diesel::sqlite::SqliteConnection;
 use env_logger::Env;
@@ -90,8 +91,8 @@ fn import(directory: &Path) {
             }
         };
 
-        let hash = match checksum::hash_file_first_bytes(&mut file, 1024 * 512) {
-            Ok(hash) => hash,
+        let partial_hash = match checksum::hash_file_first_bytes(&mut file, 1024 * 512) {
+            Ok(partial_hash) => partial_hash,
 
             Err(err) => {
                 error!(
@@ -104,7 +105,7 @@ fn import(directory: &Path) {
         };
 
         // TODO: see how to avoid the clone()
-        match db::photo_lookup_by_hash(connection, hash.clone())
+        match db::photo_lookup_by_partial_hash(connection, partial_hash.clone())
             .expect("Failed to query the database")
         {
             Some(_photo) => {
@@ -116,7 +117,7 @@ fn import(directory: &Path) {
         }
 
         info!("{} not yet in DB. Inserting...", photo_path.display());
-        if let Err(err) = import_photo(connection, photo_path, hash) {
+        if let Err(err) = import_photo(connection, photo_path, partial_hash) {
             error!("Failed to import {}: {}", photo_path.display(), err);
         }
     }
@@ -129,8 +130,13 @@ fn import_photo(
 ) -> Result<String, String> {
     // The exif info we're interested in is extracted and returned in this struct:
     let pexif = photoexif::read(file_path)?;
+
     // the date YYYY-MM-DD when the photo was taken is parsed:
     let date = files::parse_date(pexif.create_date).ok_or("No valid date found".to_string())?;
+
+    // read the file size in bytes:
+    let file_size_bytes =
+        files::file_size_bytes(file_path).map_err(|err| format!("Can't read filesize: {}", err))?;
 
     // create a folder named after this date if it doesn't exist already:
     files::create_date_folder(&date).map_err(|error| {
@@ -151,8 +157,27 @@ fn import_photo(
         .to_string_lossy()
         .into_owned();
 
+    let new_photo = NewPhoto {
+        filename,
+        directory: date,
+        partial_hash: file_partial_hash,
+        file_size_bytes: file_size_bytes as i64,
+        image_height: pexif.image_height.map(|value| value as i32),
+        image_width: pexif.image_width.map(|value| value as i32),
+        mime_type: pexif.mime_type,
+        iso: pexif.iso.map(|value| value as i32),
+        aperture: pexif.aperture,
+        shutter_speed: pexif.shutter_speed,
+        focal_length: pexif.focal_length,
+        make: pexif.make,
+        model: pexif.model,
+        lens_info: pexif.lens_info,
+        lens_make: pexif.lens_make,
+        lens_model: pexif.lens_model,
+    };
+
     // insertion in the database!
-    db::insert_photo(connection, file_partial_hash, filename, date)
+    db::insert_photo(connection, &new_photo)
         .map_err(|error| format!("Failed to insert photo into the database: {}", error))?;
     Ok(file_path.display().to_string())
 }
