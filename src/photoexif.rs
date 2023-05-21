@@ -1,6 +1,22 @@
+use serde::de::{self, Deserializer};
 use serde::Deserialize;
+use serde_json::Value as JsonValue;
 use std::path::Path;
 use std::process::Command;
+
+fn deserialize_shutter_speed<'de, D>(deserializer: D) -> Result<Option<String>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let value = serde_json::Value::deserialize(deserializer)?;
+    match value {
+        JsonValue::String(s) => Ok(Some(s)),
+        JsonValue::Number(n) => Ok(Some(n.to_string())),
+        JsonValue::Null => Ok(None),
+
+        _ => Err(de::Error::custom("Expected a string or a number")),
+    }
+}
 
 #[derive(Debug, Deserialize)]
 pub struct PExif {
@@ -26,11 +42,18 @@ pub struct PExif {
     #[serde(rename = "ApertureValue")]
     pub aperture: Option<f32>,
 
-    #[serde(rename = "ShutterSpeedValue")]
-    pub shutter_speed: Option<String>,
-
     #[serde(rename = "FocalLength")]
     pub focal_length: Option<String>,
+
+    // Most of the time and for sub second shutter speeds, the value comes as a String like
+    // `"1/100"`. Sometimes though, they come as a float, like `0.3`
+    //
+    #[serde(
+        rename = "ShutterSpeedValue",
+        default,
+        deserialize_with = "deserialize_shutter_speed"
+    )]
+    pub shutter_speed: Option<String>,
 
     // ------------------------------
     // Camera:
