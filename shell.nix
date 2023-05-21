@@ -3,6 +3,8 @@
     buildInputs = with pkgs; [
       clang
       exiftool
+      fuse3
+      pkg-config
       rustup
       sqlite
     ];

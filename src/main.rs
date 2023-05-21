@@ -12,6 +12,7 @@ use std::path::{Path, PathBuf};
 pub mod checksum;
 pub mod db;
 pub mod files;
+pub mod fuse;
 pub mod models;
 pub mod photoexif;
 pub mod schema;
@@ -49,6 +50,9 @@ enum Commands {
 
     /// Run database migrations
     Migrate,
+
+    /// Mount the FUSE filesystem
+    Mount,
 }
 
 fn main() {
@@ -73,6 +77,8 @@ fn main() {
         Some(Commands::Migrate {}) => {
             db::run_migrations();
         }
+
+        Some(Commands::Mount {}) => fuse::mount(),
 
         None => {}
     }
