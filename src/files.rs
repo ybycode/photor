@@ -39,6 +39,7 @@ pub fn file_size_bytes(filepath: &Path) -> Result<u64, String> {
 
 pub fn find_photo_files(directory: &Path) -> impl Iterator<Item = DirEntry> {
     WalkDir::new(directory)
+        .sort_by_file_name()
         .min_depth(1)
         .into_iter()
         .filter_entry(walker_filter)
