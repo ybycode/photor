@@ -47,7 +47,9 @@ pub struct PExif {
 
     // Most of the time and for sub second shutter speeds, the value comes as a String like
     // `"1/100"`. Sometimes though, they come as a float, like `0.3`
-    //
+    // Also `default` is added so that in case of a missing "ShutterSpeedValue" key on the JSON,
+    // None is returned. It is needed here since deserialize_shutter_speed doesn't manage this
+    // case.
     #[serde(
         rename = "ShutterSpeedValue",
         default,

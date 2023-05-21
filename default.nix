@@ -10,7 +10,8 @@ let
       # rev = "8f509d51d797106f245e53957c0419f3c0bc59ee";
     };
 
-    cargoSha256 = "sha256-nNwKDHJgjO4VFeIWAy6pB9+rFWr4JCsgC8Fu7g7nycA=";
+    # cargoSha256 = "0000000000000000000000000000000000000000000000000000";
+    cargoSha256 = "sha256-IXDCSNAjEPdU75iprhOdwpS2+pq59e2m4Xz4NRzAMi8=";
     buildInputs = with pkgs; [ sqlite ];
   };
 
