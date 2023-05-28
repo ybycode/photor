@@ -11,7 +11,7 @@ let
     };
 
     # cargoSha256 = "0000000000000000000000000000000000000000000000000000";
-    cargoSha256 = "sha256-IXDCSNAjEPdU75iprhOdwpS2+pq59e2m4Xz4NRzAMi8=";
+    cargoSha256 = "sha256-/RsFK/7raNq8cgHfIZhGG1LfpOgsQ2eVRrhu3AFgTsQ=";
     buildInputs = with pkgs; [ sqlite ];
   };
 

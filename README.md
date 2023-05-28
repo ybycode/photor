@@ -1,16 +1,5 @@
 # photor (Photos Repository)
 
-## Features
-
-- [ ] Create a repository of photos, defined by:
-  - [ ] A directory
-  - [ ] An sqlite database
-- [ ] Import photos from a directory (e.g. mounted SD card) into the repository:
-  - [ ] Calculate a partial checksum of each photo found
-  - [ ] Copy the photo file if the partial checksum is not found in the database
-  - Options:
-    - [ ] Recursive, default true
-
 ## Development
 
 Start nix-shell to prepare the development environment. It'll bring rust,
@@ -57,7 +46,7 @@ $ diesel migration redo
 cargo run -- --help
 ```
 
-# TODO
+# Features / TODO
 
 ## General
 
@@ -66,17 +55,17 @@ cargo run -- --help
 
 ## Database
 
-- [ ] integration of migrations files in the build
+- [x] integration of migrations files in the build
 - [ ] database initialization command
-- [ ] database migration command
+- [x] database migration command
 
 To be added in the DB for each photo:
 
-- [ ] exif: original date
-- [ ] exif: camera make
-- [ ] exif: camera model
-- [ ] file size
-- [ ] sha256sum
+- [x] exif: original date
+- [x] exif: camera make
+- [x] exif: camera model
+- [x] file size
+- [x] sha256sum
 
 ## Maintenance
 
@@ -93,6 +82,7 @@ To be added in the DB for each photo:
 
 ## Disc burn utilities
 
+- [ ] FUSE mount of files listed after DB query
 - [ ] photos selection from start date / photo DB id that fits on a disc of some capacity
 - [ ] see xorriso integration or input generation
 
