@@ -1,3 +1,5 @@
+use lazy_static::lazy_static;
+use regex::Regex;
 use serde::de::{self, Deserializer};
 use serde::Deserialize;
 use serde_json::Value as JsonValue;
@@ -20,9 +22,14 @@ where
 
 #[derive(Debug, Deserialize)]
 pub struct PExif {
-    #[serde(rename = "CreateDate")]
-    pub create_date: String,
+    // 2 dates are fetched from the metadata: the OriginaleDateTime, and the CreateDate.
+    // Both are defined as Option<String> here, as some files come with one or another.
+    // Eventually only one makes its way to the database, OriginaleDateTime in priority.
+    #[serde(rename = "DateTimeOriginal")]
+    pub date_time_original: Option<String>,
 
+    #[serde(rename = "CreateDate")]
+    pub create_date: Option<String>,
     // ------------------------------
     // file:
     #[serde(rename = "ImageHeight")]
@@ -79,7 +86,7 @@ pub struct PExif {
 
 pub fn read(photo_path: &Path) -> Result<PExif, String> {
     let output = Command::new("exiftool")
-        .arg("-json")
+        .args(["-json", "-d", "%Y-%m-%d %H:%M:%S"])
         .arg(photo_path)
         .output()
         .map_err(|_err| format!("failed to execute process"))?;
@@ -95,4 +102,30 @@ fn parse_json(data: Vec<u8>) -> Result<PExif, String> {
     // pop is used to remove the value from the Vec, so that the PExif *value* can be returned,
     // without problems of lifetimes.
     datas.pop().ok_or("No EXIF data found?".to_string())
+}
+
+fn is_some_good_date(opt: &Option<String>) -> bool {
+    lazy_static! {
+        static ref RE: Regex = Regex::new(r"^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$").unwrap();
+    }
+
+    // TODO: as_ref()? meeh
+    opt.is_some() && RE.is_match(opt.as_ref().unwrap().as_str())
+}
+
+/// we look for a date we can use (defined and with the right format). We start by checking the
+/// OriginaleDateTime, and then CreateDate.
+pub fn find_usable_date(
+    date_time_original: Option<String>,
+    create_date: Option<String>,
+) -> Option<String> {
+    if is_some_good_date(&date_time_original) {
+        return date_time_original;
+    }
+
+    if is_some_good_date(&create_date) {
+        return create_date;
+    }
+
+    None
 }

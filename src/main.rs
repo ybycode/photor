@@ -138,24 +138,27 @@ fn import_photo(
     // The exif info we're interested in is extracted and returned in this struct:
     let pexif = photoexif::read(file_path)?;
 
-    // the date YYYY-MM-DD when the photo was taken is parsed:
-    let date = files::parse_date(pexif.create_date).ok_or("No valid date found".to_string())?;
+    // the date "YYYY-MM-DD hh:mm:ss" when the photo was taken is parsed:
+    let long_date = photoexif::find_usable_date(pexif.date_time_original, pexif.create_date)
+        .ok_or("No usable date found".to_string())?;
+
+    let short_date = long_date[..10].to_string();
 
     // read the file size in bytes:
     let file_size_bytes =
         files::file_size_bytes(file_path).map_err(|err| format!("Can't read filesize: {}", err))?;
 
     // create a folder named after this date if it doesn't exist already:
-    files::create_date_folder(&date).map_err(|error| {
+    files::create_date_folder(&short_date).map_err(|error| {
         format!(
             "Could not create a directory for the date {}: {}",
-            date,
+            short_date,
             error.to_string()
         )
     })?;
 
     // copy the file to this folder:
-    files::copy_file_to_date_folder(file_path, &date)
+    files::copy_file_to_date_folder(file_path, &short_date)
         .map_err(|error| format!("Failed to copy the file {}: {}", file_path.display(), error))?;
 
     let filename = file_path
@@ -165,8 +168,9 @@ fn import_photo(
         .into_owned();
 
     let new_photo = NewPhoto {
+        create_date: long_date,
         filename,
-        directory: date,
+        directory: short_date,
         partial_hash: file_partial_hash,
         file_size_bytes: file_size_bytes as i64,
         image_height: pexif.image_height.map(|value| value as i32),

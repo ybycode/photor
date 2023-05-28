@@ -1,4 +1,4 @@
-alter table photos add column file_size_bytes integer not null default 0;
+alter table photos add column file_size_bytes bigint not null default 0;
 alter table photos add column image_height integer;
 alter table photos add column image_width integer;
 alter table photos add column mime_type text;

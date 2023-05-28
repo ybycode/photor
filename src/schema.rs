@@ -20,5 +20,6 @@ diesel::table! {
         lens_info -> Nullable<Text>,
         lens_make -> Nullable<Text>,
         lens_model -> Nullable<Text>,
+        create_date -> Text,
     }
 }
