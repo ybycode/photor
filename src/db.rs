@@ -51,3 +51,12 @@ pub fn photo_lookup_by_partial_hash(
         Err(error) => Err(error.to_string()),
     }
 }
+
+pub fn just_10_photos(conn: &mut SqliteConnection) -> Result<Vec<Photo>, String> {
+    use crate::schema::photos;
+
+    match photos::table.limit(10).load(conn) {
+        Ok(any) => Ok(any),
+        Err(error) => Err(error.to_string()),
+    }
+}
