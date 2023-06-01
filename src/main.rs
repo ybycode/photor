@@ -38,6 +38,12 @@ struct ImportArgs {
     directory: PathBuf,
 }
 
+#[derive(Args)]
+struct MountArgs {
+    /// where FUSE filesystem is mounted
+    to: PathBuf,
+}
+
 #[derive(Subcommand)]
 enum Commands {
     /// Initializes a new repository
@@ -54,7 +60,7 @@ enum Commands {
     Migrate,
 
     /// Mount the FUSE filesystem
-    Mount,
+    Mount(MountArgs),
 }
 
 fn main() {
@@ -80,7 +86,7 @@ fn main() {
             db::run_migrations();
         }
 
-        Some(Commands::Mount {}) => fuse::mount(),
+        Some(Commands::Mount(mount_args)) => fuse::mount(&mount_args.to),
 
         None => {}
     }
