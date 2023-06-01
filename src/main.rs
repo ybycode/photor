@@ -2,7 +2,7 @@
 extern crate log;
 
 use crate::models::NewPhoto;
-use clap::{Parser, Subcommand};
+use clap::{Args, Parser, Subcommand};
 use diesel::sqlite::SqliteConnection;
 use env_logger::Env;
 use log::{error, info};
@@ -31,6 +31,12 @@ struct Cli {
     command: Option<Commands>,
 }
 
+#[derive(Args)]
+struct ImportArgs {
+    /// where the files to import are
+    directory: PathBuf,
+}
+
 #[derive(Subcommand)]
 enum Commands {
     /// Initializes a new repository
@@ -41,11 +47,7 @@ enum Commands {
     },
 
     /// Import photos from a directory into the repository
-    Import {
-        /// the directory to (deep) scan for photos
-        #[arg(short, long)]
-        directory: PathBuf,
-    },
+    Import(ImportArgs),
 
     /// Run database migrations
     Migrate,
@@ -66,8 +68,8 @@ fn main() {
             init(opt_directory);
         }
 
-        Some(Commands::Import { directory }) => {
-            import(directory);
+        Some(Commands::Import(import_args)) => {
+            import(&import_args.directory);
         }
 
         Some(Commands::Migrate {}) => {
