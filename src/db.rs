@@ -3,6 +3,7 @@ use crate::schema::photos::dsl::*;
 use diesel::prelude::*;
 use diesel::sqlite::SqliteConnection;
 use dotenvy::dotenv;
+use log::info;
 use std::env;
 
 use diesel_migrations::{embed_migrations, EmbeddedMigrations, MigrationHarness};

@@ -1,21 +1,13 @@
-#[macro_use]
 extern crate log;
 
-use crate::models::NewPhoto;
 use clap::{Args, Parser, Subcommand};
 use diesel::sqlite::SqliteConnection;
 use env_logger::Env;
 use log::{error, info};
+use photor::models::NewPhoto;
+use photor::{checksum, db, files, fuse, photoexif};
 use std::fs::File;
 use std::path::{Path, PathBuf};
-
-pub mod checksum;
-pub mod db;
-pub mod files;
-pub mod fuse;
-pub mod models;
-pub mod photoexif;
-pub mod schema;
 
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
