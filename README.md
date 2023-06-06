@@ -3,7 +3,7 @@
 ## Development
 
 Start nix-shell to prepare the development environment. It'll bring rust,
-sqlite3 etc. (see default.nix):
+sqlite3 etc. (see shell.nix):
 
 ```bash
 $ nix-shell
