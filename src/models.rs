@@ -1,5 +1,7 @@
 use crate::schema::photos;
 use diesel::prelude::*;
+use std::ffi::OsString;
+use std::path::Path;
 
 #[derive(Debug, Queryable)]
 pub struct Photo {
@@ -22,6 +24,14 @@ pub struct Photo {
     pub lens_make: Option<String>,
     pub lens_model: Option<String>,
     pub create_date: String,
+}
+
+impl Photo {
+    pub fn path_os_string(&self) -> OsString {
+        return Path::new(&self.directory)
+            .join(&self.filename)
+            .into_os_string();
+    }
 }
 
 #[derive(Insertable)]

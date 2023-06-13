@@ -78,7 +78,9 @@ fn main() {
             db::run_migrations();
         }
 
-        Some(Commands::Mount(mount_args)) => fuse::mount(&mount_args.to),
+        Some(Commands::Mount(mount_args)) => {
+            mount_fuse(&mount_args.to);
+        }
 
         None => {}
     }
@@ -197,4 +199,8 @@ fn import_photo(
     db::insert_photo(connection, &new_photo)
         .map_err(|error| format!("Failed to insert photo into the database: {}", error))?;
     Ok(file_path.display().to_string())
+}
+
+fn mount_fuse(to: &PathBuf) {
+    fuse::mount(to)
 }

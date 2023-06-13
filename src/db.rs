@@ -53,10 +53,10 @@ pub fn photo_lookup_by_partial_hash(
     }
 }
 
-pub fn just_10_photos(conn: &mut SqliteConnection) -> Result<Vec<Photo>, String> {
+pub fn just_n_photos(conn: &mut SqliteConnection, n: i64) -> Result<Vec<Photo>, String> {
     use crate::schema::photos;
 
-    match photos::table.limit(10).load(conn) {
+    match photos::table.limit(n).load(conn) {
         Ok(any) => Ok(any),
         Err(error) => Err(error.to_string()),
     }
