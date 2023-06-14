@@ -1,4 +1,4 @@
-use crate::fuse_photo_fs::{Inode, PhotosFS};
+use crate::fuse_photo_fs::{FSItem, Inode, PhotosFS};
 // // use crate::models::Photo;
 use fuser::{
     FileAttr, FileType, Filesystem, MountOption, ReplyAttr, ReplyData, ReplyDirectory, ReplyEntry,
@@ -76,32 +76,35 @@ fn regular_file_attr(inode: Inode) -> FileAttr {
 impl Filesystem for PhotosFS {
     fn lookup(&mut self, _req: &Request, parent: Inode, name: &OsStr, reply: ReplyEntry) {
         println!("in lookup: parent: {:?}, name: {:?}", parent, name);
-        if name == "some_dir" {
-            reply.entry(&TTL, &regular_dir_attr(2), 0);
 
-            return;
-        }
-        if name == "hello.txt" {
-            reply.entry(&TTL, &regular_file_attr(3), 0);
+        let inode = match self.name_to_inode_map.get(name) {
+            Some(inode) => inode,
+            None => {
+                reply.error(ENOENT);
+                return;
+            }
+        };
 
-            return;
-        }
-        reply.error(ENOENT);
+        match self.inode_map.get(inode).unwrap() {
+            FSItem::File(_file) => reply.entry(&TTL, &regular_dir_attr(*inode), 0),
+            FSItem::Directory(_dir) => reply.entry(&TTL, &regular_file_attr(*inode), 0),
+        };
     }
 
     fn getattr(&mut self, _req: &Request, inode: Inode, reply: ReplyAttr) {
         println!("in getattr: inode: {:?}", inode);
-        if inode == 1 || inode == 2 {
+        if inode == 1 {
             // the root folder
+            // TODO: declare it in PhotosFS?
             reply.attr(&TTL, &regular_dir_attr(inode));
             return;
         }
-        reply.error(ENOENT);
-        // match ino {
-        //     1 => reply.attr(&TTL, &regular_file_attr(1)),
-        //     2 => reply.attr(&TTL, &regular_file_attr(2)),
-        //     _ => reply.error(ENOENT),
-        // }
+
+        match self.inode_map.get(&inode) {
+            Some(FSItem::File(_file)) => reply.attr(&TTL, &regular_dir_attr(inode)),
+            Some(FSItem::Directory(_dir)) => reply.attr(&TTL, &regular_file_attr(inode)),
+            None => reply.error(ENOENT),
+        };
     }
     //
     //     fn read(
@@ -131,40 +134,39 @@ impl Filesystem for PhotosFS {
         mut reply: ReplyDirectory,
     ) {
         println!("in readdir: ino: {:?}, offset: {:?}", ino, offset);
-        if ino != 1 {
-            reply.error(ENOENT);
-            return;
-        }
+        if ino == 1 {
+            // list the directories
+            let static_entries = vec![
+                (1u64, FileType::Directory, "."),
+                (1u64, FileType::Directory, ".."),
+            ]
+            .iter();
 
-        // let entries = vec![
-        //     (1, FileType::Directory, "."),
-        //     (1, FileType::Directory, ".."),
-        //     (2, FileType::RegularFile, "hello.txt"),
-        // ];
+            let dirs = self.directories_inodes.iter().map(|inode| {
+                match self.inode_map.get(inode).unwrap() {
+                    FSItem::File(f) => (
+                        inode,
+                        FileType::RegularFile,
+                        f.path.as_os_str().to_str().unwrap(),
+                    ),
+                    FSItem::Directory(d) => (
+                        inode,
+                        FileType::Directory,
+                        d.path.as_os_str().to_str().unwrap(),
+                    ),
+                }
+            });
 
-        // for (i, entry) in entries.into_iter().enumerate().skip(offset as usize) {
-        //     // i + 1 means the index of the next entry
-        //     if reply.add(entry.0, (i + 1) as i64, entry.1, entry.2) {
-        //         break;
-        //     }
-        // }
-        // reply.ok();
-
-        if !reply.add(1, 1, FileType::Directory, ".") {
-            let entries = vec![
-                (1, FileType::Directory, ".."),
-                (2, FileType::Directory, "some_dir"),
-                (3, FileType::RegularFile, "hello.txt"),
-            ];
-
-            for (i, entry) in entries.into_iter().enumerate().skip(offset as usize) {
+            // for (i, entry) in static_entries.chain(dirs).enumerate().skip(offset as usize) {
+            for (i, entry) in static_entries.chain(dirs).enumerate() {
                 // i + 1 means the index of the next entry
-                if reply.add(entry.0, (i + 2) as i64, entry.1, entry.2) {
+                if reply.add(entry.0, (i + 1) as i64, entry.1, entry.2) {
                     break;
                 }
             }
+        } else {
+            reply.ok();
         }
-        reply.ok();
     }
 }
 // }

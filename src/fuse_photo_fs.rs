@@ -7,13 +7,15 @@ pub type Inode = u64;
 #[derive(Debug)]
 pub struct Directory {
     inode: Inode,
+    pub path: OsString,
     // the inodes of the files this directory contains:
-    files_inodes: Vec<Inode>,
+    pub files_inodes: Vec<Inode>,
 }
 
 #[derive(Debug)]
 pub struct File {
     inode: Inode,
+    pub path: OsString,
     // sha256sum: String,
     // bytesize: u64,
 }
@@ -25,6 +27,13 @@ pub enum FSItem {
 }
 
 impl FSItem {
+    // pub fn as_directory(&self) -> Option<&Directory> {
+    //     match self {
+    //         FSItem::Directory(directory) => Some(directory),
+    //         _ => None,
+    //     }
+    // }
+
     pub fn as_directory_mut(&mut self) -> Option<&mut Directory> {
         match self {
             FSItem::Directory(directory) => Some(directory),
@@ -94,7 +103,7 @@ impl PhotosFS {
         // the file is inserted in the filesystem:
 
         let inode = self.next_inode();
-        let file = File { inode };
+        let file = File { inode, path };
 
         self.inode_map.insert(inode, FSItem::File(file));
         self.name_to_inode_map.insert(path.clone(), inode);
@@ -125,6 +134,7 @@ impl PhotosFS {
             inode,
             FSItem::Directory(Directory {
                 inode,
+                path,
                 files_inodes: vec![],
             }),
         );
