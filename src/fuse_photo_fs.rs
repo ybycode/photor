@@ -66,7 +66,7 @@ impl PhotosFS {
         inode
     }
 
-    fn is_path_already_used(&self, _path: &OsString) -> bool {
+    fn is_path_already_used<P: AsRef<Path>>(&self, _path: P) -> bool {
         // TODO
         false
     }
@@ -87,8 +87,8 @@ impl PhotosFS {
         Some(dir)
     }
 
-    pub fn add_file(&mut self, path: OsString) -> Result<Inode, String> {
-        if self.is_path_already_used(&path) {
+    pub fn add_file(&mut self, path: &OsStr) -> Result<Inode, String> {
+        if self.is_path_already_used(path) {
             return Err(format!("Path {} already used", "TODO path here"));
         }
 

@@ -140,30 +140,30 @@ impl Filesystem for PhotosFS {
                 (1u64, FileType::Directory, "."),
                 (1u64, FileType::Directory, ".."),
             ]
-            .iter();
+            .into_iter();
 
             let dirs = self.directories_inodes.iter().map(|inode| {
                 match self.inode_map.get(inode).unwrap() {
                     FSItem::File(f) => (
-                        inode,
+                        *inode,
                         FileType::RegularFile,
-                        f.path.as_os_str().to_str().unwrap(),
+                        f.path.as_os_str().to_str().unwrap_or(""),
                     ),
                     FSItem::Directory(d) => (
-                        inode,
+                        *inode,
                         FileType::Directory,
-                        d.path.as_os_str().to_str().unwrap(),
+                        d.path.as_os_str().to_str().unwrap_or(""),
                     ),
                 }
             });
 
-            // for (i, entry) in static_entries.chain(dirs).enumerate().skip(offset as usize) {
-            for (i, entry) in static_entries.chain(dirs).enumerate() {
+            for (i, entry) in static_entries.chain(dirs).enumerate().skip(offset as usize) {
                 // i + 1 means the index of the next entry
                 if reply.add(entry.0, (i + 1) as i64, entry.1, entry.2) {
                     break;
                 }
             }
+            reply.ok();
         } else {
             reply.ok();
         }
@@ -181,8 +181,8 @@ pub fn mount(mountpoint: &PathBuf) {
 
     // let mut photos: Vec<Photo> = vec![];
     let mut photos_fs = PhotosFS::new();
-    photos_fs.add_file("b/hallo.txt".into()).unwrap();
-    photos_fs.add_file("a/hey.txt".into()).unwrap();
+    photos_fs.add_file(OsStr::new("b/hallo.txt")).unwrap();
+    photos_fs.add_file(OsStr::new("a/hey.txt")).unwrap();
     // println!("photo_fs: {:?}", photos_fs);
 
     fuser::mount2(photos_fs, mountpoint, &options).unwrap();
