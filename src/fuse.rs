@@ -1,35 +1,14 @@
 use crate::fuse_photo_fs::{FSItem, Inode, PhotosFS};
 // // use crate::models::Photo;
 use fuser::{
-    FileAttr, FileType, Filesystem, MountOption, ReplyAttr, ReplyData, ReplyDirectory, ReplyEntry,
-    Request,
+    FileAttr, FileType, Filesystem, MountOption, ReplyAttr, ReplyDirectory, ReplyEntry, Request,
 };
 use libc::ENOENT;
-use std::ffi::{OsStr, OsString};
+use std::ffi::OsStr;
 use std::path::PathBuf;
 use std::time::{Duration, UNIX_EPOCH};
 
 const TTL: Duration = Duration::from_secs(1); // 1 second
-                                              //
-                                              // const HELLO_DIR_ATTR: FileAttr = FileAttr {
-                                              //     ino: 1,
-                                              //     size: 0,
-                                              //     blocks: 0,
-                                              //     atime: UNIX_EPOCH, // 1970-01-01 00:00:00
-                                              //     mtime: UNIX_EPOCH,
-                                              //     ctime: UNIX_EPOCH,
-                                              //     crtime: UNIX_EPOCH,
-                                              //     kind: FileType::Directory,
-                                              //     perm: 0o755,
-                                              //     nlink: 2,
-                                              //     uid: 501,
-                                              //     gid: 20,
-                                              //     rdev: 0,
-                                              //     flags: 0,
-                                              //     blksize: 512,
-                                              // };
-                                              //
-                                              // const HELLO_TXT_CONTENT: &str = "Hello World!\n";
                                               //
 fn regular_dir_attr(inode: Inode) -> FileAttr {
     FileAttr {
@@ -50,10 +29,10 @@ fn regular_dir_attr(inode: Inode) -> FileAttr {
         blksize: 512,
     }
 }
-fn regular_file_attr(inode: Inode) -> FileAttr {
+fn regular_file_attr(inode: Inode, size: u64) -> FileAttr {
     FileAttr {
         ino: inode,
-        size: 13,
+        size,
         blocks: 1,
         atime: UNIX_EPOCH, // 1970-01-01 00:00:00
         mtime: UNIX_EPOCH,
@@ -86,8 +65,8 @@ impl Filesystem for PhotosFS {
         };
 
         match self.inode_map.get(inode).unwrap() {
-            FSItem::File(_file) => reply.entry(&TTL, &regular_dir_attr(*inode), 0),
-            FSItem::Directory(_dir) => reply.entry(&TTL, &regular_file_attr(*inode), 0),
+            FSItem::File(_file) => reply.entry(&TTL, &regular_file_attr(*inode, 1024), 0),
+            FSItem::Directory(_dir) => reply.entry(&TTL, &regular_dir_attr(*inode), 0),
         };
     }
 
@@ -101,8 +80,8 @@ impl Filesystem for PhotosFS {
         }
 
         match self.inode_map.get(&inode) {
-            Some(FSItem::File(_file)) => reply.attr(&TTL, &regular_dir_attr(inode)),
-            Some(FSItem::Directory(_dir)) => reply.attr(&TTL, &regular_file_attr(inode)),
+            Some(FSItem::File(_file)) => reply.attr(&TTL, &regular_file_attr(inode, 1025)),
+            Some(FSItem::Directory(_dir)) => reply.attr(&TTL, &regular_dir_attr(inode)),
             None => reply.error(ENOENT),
         };
     }
@@ -135,7 +114,7 @@ impl Filesystem for PhotosFS {
     ) {
         println!("in readdir: ino: {:?}, offset: {:?}", ino, offset);
         if ino == 1 {
-            // list the directories
+            // ino == 1 is the root, where we list the directories of photos.
             let static_entries = vec![
                 (1u64, FileType::Directory, "."),
                 (1u64, FileType::Directory, ".."),
@@ -171,7 +150,7 @@ impl Filesystem for PhotosFS {
 }
 // }
 //
-pub fn mount(mountpoint: &PathBuf) {
+pub fn mount(mountpoint: &PathBuf, photos_fs: PhotosFS) {
     let options = vec![
         MountOption::RO,
         MountOption::FSName("hello".to_string()),
@@ -180,9 +159,9 @@ pub fn mount(mountpoint: &PathBuf) {
     ];
 
     // let mut photos: Vec<Photo> = vec![];
-    let mut photos_fs = PhotosFS::new();
-    photos_fs.add_file(OsStr::new("b/hallo.txt")).unwrap();
-    photos_fs.add_file(OsStr::new("a/hey.txt")).unwrap();
+    // let mut photos_fs = PhotosFS::new();
+    // photos_fs.add_file(OsStr::new("b/hallo.txt")).unwrap();
+    // photos_fs.add_file(OsStr::new("a/hey.txt")).unwrap();
     // println!("photo_fs: {:?}", photos_fs);
 
     fuser::mount2(photos_fs, mountpoint, &options).unwrap();

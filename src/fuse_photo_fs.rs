@@ -103,10 +103,13 @@ impl PhotosFS {
         // the file is inserted in the filesystem:
 
         let inode = self.next_inode();
-        let file = File { inode, path };
+        let file = File {
+            inode,
+            path: path.into(),
+        };
 
         self.inode_map.insert(inode, FSItem::File(file));
-        self.name_to_inode_map.insert(path.clone(), inode);
+        self.name_to_inode_map.insert(path.into(), inode);
 
         // we now need to insert the file's inode in the right Directory.
 
@@ -134,7 +137,7 @@ impl PhotosFS {
             inode,
             FSItem::Directory(Directory {
                 inode,
-                path,
+                path: path.clone(),
                 files_inodes: vec![],
             }),
         );

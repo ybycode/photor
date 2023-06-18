@@ -4,8 +4,10 @@ use clap::{Args, Parser, Subcommand};
 use diesel::sqlite::SqliteConnection;
 use env_logger::Env;
 use log::{error, info};
+use photor::fuse_photo_fs::PhotosFS;
 use photor::models::NewPhoto;
 use photor::{checksum, db, files, fuse, photoexif};
+use std::ffi::OsStr;
 use std::fs::File;
 use std::path::{Path, PathBuf};
 
@@ -202,5 +204,12 @@ fn import_photo(
 }
 
 fn mount_fuse(to: &PathBuf) {
-    fuse::mount(to)
+    let connection = &mut db::establish_connection();
+    let mut photos_fs = PhotosFS::new();
+    for photo in db::just_n_photos(connection, 100000).unwrap() {
+        println!("{}, {}", photo.directory, photo.filename);
+        photos_fs.add_file(&photo.path_os_string()).unwrap();
+    }
+
+    fuse::mount(to, photos_fs)
 }
