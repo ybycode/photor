@@ -7,7 +7,6 @@ use log::{error, info};
 use photor::fuse_photo_fs::PhotosFS;
 use photor::models::NewPhoto;
 use photor::{checksum, db, files, fuse, photoexif};
-use std::ffi::OsStr;
 use std::fs::File;
 use std::path::{Path, PathBuf};
 
@@ -207,7 +206,6 @@ fn mount_fuse(to: &PathBuf) {
     let connection = &mut db::establish_connection();
     let mut photos_fs = PhotosFS::new();
     for photo in db::just_n_photos(connection, 100000).unwrap() {
-        println!("{}, {}", photo.directory, photo.filename);
         photos_fs.add_file(&photo.path_os_string()).unwrap();
     }
 

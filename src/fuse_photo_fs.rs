@@ -6,7 +6,7 @@ pub type Inode = u64;
 
 #[derive(Debug)]
 pub struct Directory {
-    inode: Inode,
+    pub inode: Inode,
     pub path: OsString,
     // the inodes of the files this directory contains:
     pub files_inodes: Vec<Inode>,
@@ -14,7 +14,7 @@ pub struct Directory {
 
 #[derive(Debug)]
 pub struct File {
-    inode: Inode,
+    // inode: Inode,
     pub path: OsString,
     // sha256sum: String,
     // bytesize: u64,
@@ -94,7 +94,8 @@ impl PhotosFS {
 
         // TODO: clunky with OsString and Path here
         // Create the Directory of where this file is, if it doesn't exist already:
-        let dir_path = if let Some(p) = Path::parent(Path::new(&path)) {
+        let ppath = Path::new(&path);
+        let dir_path = if let Some(p) = Path::parent(ppath) {
             p.as_os_str()
         } else {
             return Err("File is not in a directory??".to_string());
@@ -104,8 +105,8 @@ impl PhotosFS {
 
         let inode = self.next_inode();
         let file = File {
-            inode,
-            path: path.into(),
+            // inode,
+            path: Path::file_name(ppath).unwrap().into(),
         };
 
         self.inode_map.insert(inode, FSItem::File(file));

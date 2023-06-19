@@ -13,7 +13,7 @@ const TTL: Duration = Duration::from_secs(1); // 1 second
 fn regular_dir_attr(inode: Inode) -> FileAttr {
     FileAttr {
         ino: inode,
-        size: 0,
+        size: 4096,
         blocks: 0,
         atime: UNIX_EPOCH, // 1970-01-01 00:00:00
         mtime: UNIX_EPOCH,
@@ -56,15 +56,25 @@ impl Filesystem for PhotosFS {
     fn lookup(&mut self, _req: &Request, parent: Inode, name: &OsStr, reply: ReplyEntry) {
         println!("in lookup: parent: {:?}, name: {:?}", parent, name);
 
+        if name.to_str() == Some("hello.txt") {
+            reply.entry(&TTL, &regular_file_attr(7258, 1024), 0);
+            return;
+        }
+
         let inode = match self.name_to_inode_map.get(name) {
-            Some(inode) => inode,
+            Some(inode) => {
+                println!("Case with inode. inode: {:?}", inode);
+                inode
+            }
             None => {
+                println!("Case with ENOENT. name: {:?}", name);
                 reply.error(ENOENT);
                 return;
             }
         };
 
         match self.inode_map.get(inode).unwrap() {
+            // TODO: use file and dir vars to populate actual attributes
             FSItem::File(_file) => reply.entry(&TTL, &regular_file_attr(*inode, 1024), 0),
             FSItem::Directory(_dir) => reply.entry(&TTL, &regular_dir_attr(*inode), 0),
         };
@@ -144,6 +154,54 @@ impl Filesystem for PhotosFS {
             }
             reply.ok();
         } else {
+            let dir = match self.inode_map.get(&ino).unwrap() {
+                FSItem::File(_file) => {
+                    // shouldn't be a file. TODO: find a better way to deal with this case.
+                    reply.ok();
+                    return;
+                }
+                FSItem::Directory(dir) => dir,
+            };
+            let static_entries = vec![
+                (dir.inode, FileType::Directory, "."),
+                (1u64, FileType::Directory, ".."),
+                (7258, FileType::RegularFile, "hello.txt"),
+            ]
+            .into_iter();
+
+            let files = dir.files_inodes.iter().map(|inode| {
+                match self.inode_map.get(inode).unwrap() {
+                    FSItem::File(f) => {
+                        let i = *inode;
+                        let path = f.path.as_os_str().to_str().unwrap_or("");
+                        println!("Iterator loaded with: {:?}, {:?}", i, path);
+
+                        (i, FileType::RegularFile, path)
+                    }
+                    FSItem::Directory(d) => {
+                        println!("Whaaaaaaat");
+
+                        (
+                            // NOTE: shouldn't happen but it's fine to leave this here for now I guess.
+                            *inode,
+                            FileType::Directory,
+                            d.path.as_os_str().to_str().unwrap_or(""),
+                        )
+                    }
+                }
+            });
+
+            for (i, entry) in static_entries
+                .chain(files)
+                .enumerate()
+                .skip(offset as usize)
+            {
+                // i + 1 means the index of the next entry
+                if reply.add(entry.0, (i + 1) as i64, entry.1, entry.2) {
+                    break;
+                }
+            }
+
             reply.ok();
         }
     }
@@ -157,12 +215,6 @@ pub fn mount(mountpoint: &PathBuf, photos_fs: PhotosFS) {
         // MountOption::AutoUnmount,
         // MountOption::AllowRoot,
     ];
-
-    // let mut photos: Vec<Photo> = vec![];
-    // let mut photos_fs = PhotosFS::new();
-    // photos_fs.add_file(OsStr::new("b/hallo.txt")).unwrap();
-    // photos_fs.add_file(OsStr::new("a/hey.txt")).unwrap();
-    // println!("photo_fs: {:?}", photos_fs);
 
     fuser::mount2(photos_fs, mountpoint, &options).unwrap();
 }
