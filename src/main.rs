@@ -206,7 +206,7 @@ fn mount_fuse(to: &PathBuf) {
     let connection = &mut db::establish_connection();
     let mut photos_fs = PhotosFS::new();
     for photo in db::just_n_photos(connection, 100000).unwrap() {
-        photos_fs.add_file(&photo.path_os_string()).unwrap();
+        photos_fs.add_file(&photo.to_pathbuf()).unwrap();
     }
 
     fuse::mount(to, photos_fs)

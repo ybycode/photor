@@ -1,7 +1,7 @@
 use crate::schema::photos;
 use diesel::prelude::*;
 use std::ffi::OsString;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 #[derive(Debug, Queryable)]
 pub struct Photo {
@@ -27,10 +27,8 @@ pub struct Photo {
 }
 
 impl Photo {
-    pub fn path_os_string(&self) -> OsString {
-        return Path::new(&self.directory)
-            .join(&self.filename)
-            .into_os_string();
+    pub fn to_pathbuf(&self) -> PathBuf {
+        return Path::new(&self.directory).join(&self.filename);
     }
 }
 
