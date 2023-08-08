@@ -117,8 +117,13 @@ fn import(directory: &Path) {
         match db::photo_lookup_by_partial_hash(connection, partial_hash.clone())
             .expect("Failed to query the database")
         {
-            Some(_photo) => {
-                info!("{}  already in DB, skipping...", photo_path.display());
+            Some(photo_in_db) => {
+                info!(
+                    "{}  already in DB (in {}/{}), skipping...",
+                    photo_path.display(),
+                    photo_in_db.directory,
+                    photo_in_db.filename
+                );
                 continue;
             }
 
