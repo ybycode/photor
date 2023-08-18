@@ -1,13 +1,19 @@
+use axum::response::Html;
 use axum::{routing::get, Router};
 use diesel::sqlite::SqliteConnection;
+use std::net::SocketAddr;
 
 #[tokio::main]
-pub async fn serve(conn: &mut SqliteConnection) {
-    let app = Router::new().route("/", get(|| async { "Hello, World!" }));
+pub async fn serve(_conn: &mut SqliteConnection) {
+    let routes = Router::new().route(
+        "/",
+        get(|| async { Html("Hello, <strong>World!</strong>") }),
+    );
 
-    println!("Starting the web server on http://0.0.0.0:3000");
-    axum::Server::bind(&"0.0.0.0:3000".parse().unwrap())
-        .serve(app.into_make_service())
+    let addr = SocketAddr::from(([0, 0, 0, 0], 8080));
+    println!("Starting the web server on http://{addr}\n");
+    axum::Server::bind(&addr)
+        .serve(routes.into_make_service())
         .await
         .unwrap();
 }
