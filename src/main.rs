@@ -15,6 +15,7 @@ pub mod files;
 pub mod models;
 pub mod photoexif;
 pub mod schema;
+pub mod webserver;
 
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
@@ -51,6 +52,9 @@ enum Commands {
 
     /// Run database migrations
     Migrate,
+
+    /// Start the web server
+    Serve,
 }
 
 fn main() {
@@ -75,6 +79,8 @@ fn main() {
         Some(Commands::Migrate {}) => {
             db::run_migrations();
         }
+
+        Some(Commands::Serve {}) => serve(),
 
         None => {}
     }
@@ -198,4 +204,9 @@ fn import_photo(
     db::insert_photo(connection, &new_photo)
         .map_err(|error| format!("Failed to insert photo into the database: {}", error))?;
     Ok(file_path.display().to_string())
+}
+
+fn serve() {
+    let connection = &mut db::establish_connection();
+    webserver::serve(connection);
 }
