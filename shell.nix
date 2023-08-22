@@ -3,6 +3,8 @@
     buildInputs = with pkgs; [
       clang
       exiftool
+      pkg-config
+      openssl
       rustup
       sqlite
     ];
