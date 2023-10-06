@@ -3,14 +3,15 @@ extern crate log;
 
 use crate::models::NewPhoto;
 use clap::{Args, Parser, Subcommand};
-use diesel::sqlite::SqliteConnection;
 use env_logger::Env;
 use log::{error, info};
+use sqlx::sqlite::SqlitePool;
+use std::env;
 use std::fs::File;
 use std::path::{Path, PathBuf};
 
 pub mod checksum;
-pub mod db;
+pub mod database;
 pub mod files;
 pub mod models;
 pub mod photoexif;
@@ -45,15 +46,15 @@ enum Commands {
         #[arg(short, long)]
         directory: Option<PathBuf>,
     },
+    List,
 
     /// Import photos from a directory into the repository
     Import(ImportArgs),
-
-    /// Run database migrations
-    Migrate,
+    // Migrate,
 }
 
-fn main() {
+#[tokio::main(flavor = "current_thread")]
+async fn main() -> anyhow::Result<()> {
     // if no environment variables are set to define th elog level, "info" is the value by default.
     env_logger::Builder::from_env(Env::default().default_filter_or("info")).init();
 
@@ -62,22 +63,16 @@ fn main() {
     // You can check for the existence of subcommands, and if found use their
     // matches just as you would the top level cmd
     match &cli.command {
-        Some(Commands::Init {
-            directory: opt_directory,
-        }) => {
-            init(opt_directory);
-        }
-
+        Some(Commands::Init { directory }) => init(directory),
+        Some(Commands::List) => return list_photos().await,
         Some(Commands::Import(import_args)) => {
-            import(&import_args.directory);
+            return import(&import_args.directory).await;
         }
 
-        Some(Commands::Migrate {}) => {
-            db::run_migrations();
-        }
+        None => (),
+    };
 
-        None => {}
-    }
+    Ok(())
 }
 
 fn init(opt_directory: &Option<PathBuf>) {
@@ -86,8 +81,19 @@ fn init(opt_directory: &Option<PathBuf>) {
     println!("TODO: Initialization of a new repo in {:?}", dest);
 }
 
-fn import(directory: &Path) {
-    let connection = &mut db::establish_connection();
+async fn list_photos() -> anyhow::Result<()> {
+    let pool = database::pool(&env::var("DATABASE_URL")?).await?;
+    let res = database::list_photos(&pool).await?;
+
+    for p in res {
+        println!("{}/{}", p.directory, p.filename);
+    }
+
+    Ok(())
+}
+
+async fn import(directory: &Path) -> anyhow::Result<()> {
+    let pool = database::pool(&env::var("DATABASE_URL")?).await?;
     for file in files::find_photo_files(directory) {
         let photo_path = file.path();
 
@@ -114,9 +120,7 @@ fn import(directory: &Path) {
         };
 
         // TODO: see how to avoid the clone()
-        match db::photo_lookup_by_partial_hash(connection, partial_hash.clone())
-            .expect("Failed to query the database")
-        {
+        match database::photo_lookup_by_partial_hash(&pool, partial_hash.clone()).await {
             Some(photo_in_db) => {
                 info!(
                     "{}  already in DB (in {}/{}), skipping...",
@@ -131,14 +135,16 @@ fn import(directory: &Path) {
         }
 
         info!("{} not yet in DB. Inserting...", photo_path.display());
-        if let Err(err) = import_photo(connection, photo_path, partial_hash) {
+        if let Err(err) = import_photo(&pool, photo_path, partial_hash).await {
             error!("Failed to import {}: {}", photo_path.display(), err);
         }
     }
+
+    Ok(())
 }
 
-fn import_photo(
-    connection: &mut SqliteConnection,
+async fn import_photo(
+    pool: &SqlitePool,
     file_path: &Path,
     file_partial_hash: String,
 ) -> Result<String, String> {
@@ -195,7 +201,8 @@ fn import_photo(
     };
 
     // insertion in the database!
-    db::insert_photo(connection, &new_photo)
+    database::insert_photo(pool, new_photo)
+        .await
         .map_err(|error| format!("Failed to insert photo into the database: {}", error))?;
     Ok(file_path.display().to_string())
 }
