@@ -1,5 +1,4 @@
 /target
-*.sqlite
 img/
 result
 test_images/
