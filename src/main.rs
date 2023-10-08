@@ -151,8 +151,19 @@ async fn import_photo(
     let pexif = photoexif::read(file_path)?;
 
     // the date "YYYY-MM-DD hh:mm:ss" when the photo was taken is parsed:
+    // if no date is found, 1970-01-01 is used.
+    // TODO: better deal with this case:
+    // - add an attribute like 'has_date' in the DB?
+    // - prefix all image files with their partial hash to minimize names clashes in the 1970-01-01
+    // folder (and others).
     let long_date = photoexif::find_usable_date(pexif.date_time_original, pexif.create_date)
-        .ok_or("No usable date found".to_string())?;
+        .unwrap_or_else(|| {
+            warn!(
+                "No usable date found in exif data of {}",
+                file_path.display()
+            );
+            "1970-01-01".into()
+        });
 
     let short_date = long_date[..10].to_string();
 
