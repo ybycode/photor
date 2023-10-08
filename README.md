@@ -13,13 +13,13 @@ $ nix-shell
 ## Build
 
 ```
-$ nix-build -A wrapper
+$ nix-build
 ```
 
 ## Installation
 
 ```
-$ nix-env -f default.nix -iA wrapper
+$ nix-env -f default.nix -i
 ```
 
 ### Troubleshooting
