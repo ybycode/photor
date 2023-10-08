@@ -15,7 +15,6 @@ pub mod database;
 pub mod files;
 pub mod models;
 pub mod photoexif;
-pub mod schema;
 
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
