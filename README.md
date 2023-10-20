@@ -34,10 +34,11 @@ Running `$ nix-env -u --always` solved the problem.
 ### Database migrations
 
 ```bash
-$ diesel migration generate some_new_migration
-$ diesel migration run
-$ # or, to rollback and run again (to quickly iterate on a migration script):
-$ diesel migration redo
+$ sqlx migrate add -r some_new_migration
+$ # edit the created files, then:
+$ sqlx migrate run
+$ # or rollback:
+$ sqlx migrate revert
 ```
 
 ### Run the code in dev mode

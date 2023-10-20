@@ -12,16 +12,16 @@ let
 in
 rustPlatform.buildRustPackage rec {
   name = "photor";
-  version = "0.1.0";
-  # src = ./.;
-  src = builtins.fetchGit {
-    url = "https://github.com/ybycode/photor.git";
-    ref = "main";
-    # rev = "8f509d51d797106f245e53957c0419f3c0bc59ee";
-  };
+  version = "0.4.1";
+  src = ./.;
+  # src = builtins.fetchGit {
+  #   url = "https://github.com/ybycode/photor.git";
+  #   ref = "main";
+  #   # rev = "8f509d51d797106f245e53957c0419f3c0bc59ee";
+  # };
 
   # cargoSha256 = "0000000000000000000000000000000000000000000000000000";
-  cargoSha256 = "sha256-sD6DOQNsHtSIQk5uJE5BfyMHF0Vd8gH3qXZLQ4WtuUc=";
+  cargoSha256 = "sha256-9kYfvuCVysUzQib0veAPtHHazjiVLu7bvKNq5IRTHkY=";
   buildInputs = with pkgs; [
     pkg-config
     openssl
