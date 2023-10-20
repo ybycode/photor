@@ -6,7 +6,6 @@ use clap::{Args, Parser, Subcommand};
 use env_logger::Env;
 use log::{error, info};
 use sqlx::sqlite::SqlitePool;
-use std::env;
 use std::fs::File;
 use std::path::{Path, PathBuf};
 
@@ -49,7 +48,9 @@ enum Commands {
 
     /// Import photos from a directory into the repository
     Import(ImportArgs),
-    // Migrate,
+
+    /// Migrate the database
+    Migrate,
 }
 
 #[tokio::main(flavor = "current_thread")]
@@ -63,6 +64,7 @@ async fn main() -> anyhow::Result<()> {
     // matches just as you would the top level cmd
     match &cli.command {
         Some(Commands::Init { directory }) => init(directory),
+        Some(Commands::Migrate) => return database::migrate().await,
         Some(Commands::List) => return list_photos().await,
         Some(Commands::Import(import_args)) => {
             return import(&import_args.directory).await;
@@ -81,7 +83,7 @@ fn init(opt_directory: &Option<PathBuf>) {
 }
 
 async fn list_photos() -> anyhow::Result<()> {
-    let pool = database::pool(&env::var("DATABASE_URL")?).await?;
+    let pool = database::pool().await?;
     let res = database::list_photos(&pool).await?;
 
     for p in res {
@@ -92,7 +94,7 @@ async fn list_photos() -> anyhow::Result<()> {
 }
 
 async fn import(directory: &Path) -> anyhow::Result<()> {
-    let pool = database::pool(&env::var("DATABASE_URL")?).await?;
+    let pool = database::pool().await?;
     for file in files::find_photo_files(directory) {
         let photo_path = file.path();
 

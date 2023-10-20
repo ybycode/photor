@@ -1,11 +1,19 @@
 use crate::models::{NewPhoto, Photo};
+use anyhow::Result;
 use sqlx::sqlite::SqlitePool;
 
-pub async fn pool(db_filename: &str) -> Result<SqlitePool, sqlx::Error> {
-    SqlitePool::connect(db_filename).await
+pub async fn pool() -> Result<SqlitePool> {
+    let pool = SqlitePool::connect("sqlite:db.sqlite").await?;
+    Ok(pool)
 }
 
-pub async fn insert_photo(pool: &SqlitePool, photo: NewPhoto) -> Result<i64, String> {
+pub async fn migrate() -> Result<()> {
+    let pool = pool().await?;
+    sqlx::migrate!("./migrations").run(&pool).await?;
+    Ok(())
+}
+
+pub async fn insert_photo(pool: &SqlitePool, photo: NewPhoto) -> Result<i64> {
     let mut conn = pool.acquire().await.unwrap();
 
     let id = sqlx::query!(
