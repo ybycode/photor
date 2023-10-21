@@ -120,8 +120,7 @@ async fn import(directory: &Path) -> anyhow::Result<()> {
             }
         };
 
-        // TODO: see how to avoid the clone()
-        match database::photo_lookup_by_partial_hash(&pool, partial_hash.clone()).await {
+        match database::photo_lookup_by_partial_hash(&pool, &partial_hash).await {
             Some(photo_in_db) => {
                 info!(
                     "{}  already in DB (in {}/{}), skipping...",
