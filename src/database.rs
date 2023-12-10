@@ -65,7 +65,7 @@ pub async fn insert_photo(pool: &SqlitePool, photo: NewPhoto) -> Result<i64> {
     Ok(id)
 }
 
-pub async fn photo_lookup_by_partial_hash(pool: &SqlitePool, hash: String) -> Option<Photo> {
+pub async fn photo_lookup_by_partial_hash(pool: &SqlitePool, hash: &str) -> Option<Photo> {
     sqlx::query_as!(
         Photo,
         r#"

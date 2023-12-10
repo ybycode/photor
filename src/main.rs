@@ -14,6 +14,9 @@ pub mod database;
 pub mod files;
 pub mod models;
 pub mod photoexif;
+pub mod webserver;
+
+println!("hello");
 
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
@@ -51,6 +54,9 @@ enum Commands {
 
     /// Migrate the database
     Migrate,
+
+    /// Start the web server
+    Serve,
 }
 
 #[tokio::main(flavor = "current_thread")]
@@ -69,6 +75,7 @@ async fn main() -> anyhow::Result<()> {
         Some(Commands::Import(import_args)) => {
             return import(&import_args.directory).await;
         }
+        Some(Commands::Serve {}) => serve().await,
 
         None => (),
     };
@@ -120,8 +127,7 @@ async fn import(directory: &Path) -> anyhow::Result<()> {
             }
         };
 
-        // TODO: see how to avoid the clone()
-        match database::photo_lookup_by_partial_hash(&pool, partial_hash.clone()).await {
+        match database::photo_lookup_by_partial_hash(&pool, &partial_hash).await {
             Some(photo_in_db) => {
                 info!(
                     "{}  already in DB (in {}/{}), skipping...",
@@ -217,4 +223,8 @@ async fn import_photo(
         .await
         .map_err(|error| format!("Failed to insert photo into the database: {}", error))?;
     Ok(file_path.display().to_string())
+}
+
+async fn serve() {
+    webserver::serve().await
 }
