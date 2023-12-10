@@ -2,13 +2,11 @@ use axum::extract::{Path, Query};
 use axum::response::{Html, IntoResponse};
 use axum::routing::{get, get_service};
 use axum::Router;
-use diesel::sqlite::SqliteConnection;
 use serde::Deserialize;
 use std::net::SocketAddr;
 use tower_http::services::ServeDir;
 
-#[tokio::main]
-pub async fn serve(_conn: &mut SqliteConnection) {
+pub async fn serve() {
     let routes = Router::new()
         .merge(routes_hello())
         .fallback_service(routes_static());
@@ -24,8 +22,8 @@ pub async fn serve(_conn: &mut SqliteConnection) {
 
 fn routes_hello() -> Router {
     Router::new()
-        .route("/hello", get(handler_hello))
-        .route("/hello2/:name", get(handler_hello2))
+        .route("/", get(handler_hello))
+        .route("/:name", get(handler_hello2))
 }
 
 #[derive(Debug, Deserialize)]

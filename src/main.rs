@@ -3,19 +3,20 @@ extern crate log;
 
 use crate::models::NewPhoto;
 use clap::{Args, Parser, Subcommand};
-use diesel::sqlite::SqliteConnection;
 use env_logger::Env;
 use log::{error, info};
+use sqlx::sqlite::SqlitePool;
 use std::fs::File;
 use std::path::{Path, PathBuf};
 
 pub mod checksum;
-pub mod db;
+pub mod database;
 pub mod files;
 pub mod models;
 pub mod photoexif;
-pub mod schema;
 pub mod webserver;
+
+println!("hello");
 
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
@@ -46,18 +47,20 @@ enum Commands {
         #[arg(short, long)]
         directory: Option<PathBuf>,
     },
+    List,
 
     /// Import photos from a directory into the repository
     Import(ImportArgs),
 
-    /// Run database migrations
+    /// Migrate the database
     Migrate,
 
     /// Start the web server
     Serve,
 }
 
-fn main() {
+#[tokio::main(flavor = "current_thread")]
+async fn main() -> anyhow::Result<()> {
     // if no environment variables are set to define th elog level, "info" is the value by default.
     env_logger::Builder::from_env(Env::default().default_filter_or("info")).init();
 
@@ -66,24 +69,18 @@ fn main() {
     // You can check for the existence of subcommands, and if found use their
     // matches just as you would the top level cmd
     match &cli.command {
-        Some(Commands::Init {
-            directory: opt_directory,
-        }) => {
-            init(opt_directory);
-        }
-
+        Some(Commands::Init { directory }) => init(directory),
+        Some(Commands::Migrate) => return database::migrate().await,
+        Some(Commands::List) => return list_photos().await,
         Some(Commands::Import(import_args)) => {
-            import(&import_args.directory);
+            return import(&import_args.directory).await;
         }
+        Some(Commands::Serve {}) => serve().await,
 
-        Some(Commands::Migrate {}) => {
-            db::run_migrations();
-        }
+        None => (),
+    };
 
-        Some(Commands::Serve {}) => serve(),
-
-        None => {}
-    }
+    Ok(())
 }
 
 fn init(opt_directory: &Option<PathBuf>) {
@@ -92,8 +89,19 @@ fn init(opt_directory: &Option<PathBuf>) {
     println!("TODO: Initialization of a new repo in {:?}", dest);
 }
 
-fn import(directory: &Path) {
-    let connection = &mut db::establish_connection();
+async fn list_photos() -> anyhow::Result<()> {
+    let pool = database::pool().await?;
+    let res = database::list_photos(&pool).await?;
+
+    for p in res {
+        println!("{}/{}", p.directory, p.filename);
+    }
+
+    Ok(())
+}
+
+async fn import(directory: &Path) -> anyhow::Result<()> {
+    let pool = database::pool().await?;
     for file in files::find_photo_files(directory) {
         let photo_path = file.path();
 
@@ -119,10 +127,7 @@ fn import(directory: &Path) {
             }
         };
 
-        // TODO: see how to avoid the clone()
-        match db::photo_lookup_by_partial_hash(connection, partial_hash.clone())
-            .expect("Failed to query the database")
-        {
+        match database::photo_lookup_by_partial_hash(&pool, &partial_hash).await {
             Some(photo_in_db) => {
                 info!(
                     "{}  already in DB (in {}/{}), skipping...",
@@ -137,14 +142,16 @@ fn import(directory: &Path) {
         }
 
         info!("{} not yet in DB. Inserting...", photo_path.display());
-        if let Err(err) = import_photo(connection, photo_path, partial_hash) {
+        if let Err(err) = import_photo(&pool, photo_path, partial_hash).await {
             error!("Failed to import {}: {}", photo_path.display(), err);
         }
     }
+
+    Ok(())
 }
 
-fn import_photo(
-    connection: &mut SqliteConnection,
+async fn import_photo(
+    pool: &SqlitePool,
     file_path: &Path,
     file_partial_hash: String,
 ) -> Result<String, String> {
@@ -152,8 +159,19 @@ fn import_photo(
     let pexif = photoexif::read(file_path)?;
 
     // the date "YYYY-MM-DD hh:mm:ss" when the photo was taken is parsed:
+    // if no date is found, 1970-01-01 is used.
+    // TODO: better deal with this case:
+    // - add an attribute like 'has_date' in the DB?
+    // - prefix all image files with their partial hash to minimize names clashes in the 1970-01-01
+    // folder (and others).
     let long_date = photoexif::find_usable_date(pexif.date_time_original, pexif.create_date)
-        .ok_or("No usable date found".to_string())?;
+        .unwrap_or_else(|| {
+            warn!(
+                "No usable date found in exif data of {}",
+                file_path.display()
+            );
+            "1970-01-01".into()
+        });
 
     let short_date = long_date[..10].to_string();
 
@@ -201,12 +219,12 @@ fn import_photo(
     };
 
     // insertion in the database!
-    db::insert_photo(connection, &new_photo)
+    database::insert_photo(pool, new_photo)
+        .await
         .map_err(|error| format!("Failed to insert photo into the database: {}", error))?;
     Ok(file_path.display().to_string())
 }
 
-fn serve() {
-    let connection = &mut db::establish_connection();
-    webserver::serve(connection);
+async fn serve() {
+    webserver::serve().await
 }
