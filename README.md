@@ -18,9 +18,39 @@ $ nix-build
 
 ## Installation
 
-```
-$ nix-env -f default.nix -i
-```
+- for an installation as a user, when sources are available locally:
+
+  ```
+  $ nix-env -f default.nix -i
+  ```
+
+- for an system wide installation in nixos:
+
+  1. create a file called photor.nix:
+
+    ```nix
+    { pkgs }:
+
+    let src = pkgs.fetchFromGitHub {
+        owner  = "ybycode";
+        repo   = "photor";
+        rev    = "88ae4770c95c55a5adec7b07e12ae8d8137cbc19"; # the commit to install
+        sha256 = "sha256-njGYM3SlM4VBI+gXlG8gGUIxCAnvil22jR+3UxhPIvQ="; # given in the error of a build tried with the fake hash
+        # sha256 = pkgs.lib.fakeSha256;
+      };
+    in
+    import "${src}/default.nix"
+    ```
+  2. in configuration.nix:
+
+    ```nix
+    environment.systemPackages = with pkgs; [
+
+      # ...
+
+      (import ./photor.nix { inherit pkgs; })
+    ];
+    ```
 
 ### Troubleshooting
 
