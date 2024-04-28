@@ -12,11 +12,11 @@ let
 in
 rustPlatform.buildRustPackage rec {
   name = "photor";
-  version = "0.4.1";
+  version = "0.4.2";
   src = ./.;
 
   # cargoSha256 = "0000000000000000000000000000000000000000000000000000";
-  cargoSha256 = "sha256-9kYfvuCVysUzQib0veAPtHHazjiVLu7bvKNq5IRTHkY=";
+  cargoSha256 = "sha256-LdbjexZ+rVAPMjvjk2TZQYeW78dRb8fjK0NGZVOamsc=";
   buildInputs = with pkgs; [
     exiftool
     pkg-config
