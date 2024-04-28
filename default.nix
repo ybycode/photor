@@ -18,6 +18,7 @@ rustPlatform.buildRustPackage rec {
   # cargoSha256 = "0000000000000000000000000000000000000000000000000000";
   cargoSha256 = "sha256-9kYfvuCVysUzQib0veAPtHHazjiVLu7bvKNq5IRTHkY=";
   buildInputs = with pkgs; [
+    exiftool
     pkg-config
     openssl
     sqlite
