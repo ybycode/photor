@@ -18,13 +18,17 @@ rustPlatform.buildRustPackage rec {
   # cargoSha256 = "0000000000000000000000000000000000000000000000000000";
   cargoSha256 = "sha256-LdbjexZ+rVAPMjvjk2TZQYeW78dRb8fjK0NGZVOamsc=";
   buildInputs = with pkgs; [
-    exiftool
-    pkg-config
+    makeWrapper # provides wrapProgram, see postInstall
     openssl
     sqlite
   ];
+
   nativeBuildInputs = with pkgs; [
-    openssl
     pkg-config
   ];
+
+  # postInstall required to add the exiftool runtime dependency:
+  postInstall = ''
+     wrapProgram $out/bin/photor --set PATH ${lib.makeBinPath [ exiftool ]}
+  '';
 }
