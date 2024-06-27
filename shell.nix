@@ -14,6 +14,7 @@ in
       llvmPackages_16.bintools
       openssl
       pkg-config
+      rust-analyzer-unwrapped
       rustup
       sqlite
       sqlx-cli
@@ -24,6 +25,9 @@ in
     shellHook = ''
       export PATH=$PATH:''${CARGO_HOME:-~/.cargo}/bin
       export PATH=$PATH:''${RUSTUP_HOME:-~/.rustup}/toolchains/$RUSTC_VERSION-x86_64-unknown-linux-gnu/bin/
+      # needed for rust-analyzer to work correctly. From https://ayats.org/blog/nix-rustup/#rust-analyzer:
+      export RUST_SRC_PATH=~/.rustup}/toolchains/$RUSTC_VERSION-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library";
+
       export DATABASE_URL="sqlite:db.sqlite"
       '';
     # Add precompiled library to rustc search path
