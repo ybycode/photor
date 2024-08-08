@@ -1,2 +1,6 @@
 [toolchain]
 channel = "stable"
+components = [
+  # needed for rust-analyzer to work correctly. From https://ayats.org/blog/nix-rustup/#rust-analyzer:
+  "rust-src"
+]

@@ -15,6 +15,8 @@ pub mod files;
 pub mod models;
 pub mod photoexif;
 
+const PARTIAL_HASH_NBYTES: u64 = 1024 * 512;
+
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
 struct Cli {
@@ -107,7 +109,7 @@ async fn import(directory: &Path) -> anyhow::Result<()> {
             }
         };
 
-        let partial_hash = match checksum::hash_file_first_bytes(&mut file, 1024 * 512) {
+        let partial_hash = match checksum::hash_file_first_bytes(&mut file, PARTIAL_HASH_NBYTES) {
             Ok(partial_hash) => partial_hash,
 
             Err(err) => {
@@ -195,7 +197,7 @@ async fn import_photo(
         create_date: long_date,
         filename,
         directory: short_date,
-        partial_hash: file_partial_hash,
+        partial_sha256_hash: file_partial_hash,
         file_size_bytes: file_size_bytes as i64,
         image_height: pexif.image_height.map(|value| value as i32),
         image_width: pexif.image_width.map(|value| value as i32),

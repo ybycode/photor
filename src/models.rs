@@ -3,7 +3,7 @@ pub struct Photo {
     pub id: i64,
     pub filename: String,
     pub directory: String,
-    pub partial_hash: String,
+    pub partial_sha256_hash: String,
     pub full_sha256_hash: String,
     pub file_size_bytes: i64,
     pub image_height: Option<i64>,
@@ -25,7 +25,7 @@ pub struct Photo {
 pub struct NewPhoto {
     // ------------------------------
     // file:
-    pub partial_hash: String,
+    pub partial_sha256_hash: String,
     pub filename: String,
     pub directory: String,
     pub file_size_bytes: i64,
