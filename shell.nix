@@ -26,9 +26,11 @@ in
       export PATH=$PATH:''${CARGO_HOME:-~/.cargo}/bin
       export PATH=$PATH:''${RUSTUP_HOME:-~/.rustup}/toolchains/$RUSTC_VERSION-x86_64-unknown-linux-gnu/bin/
       # needed for rust-analyzer to work correctly. From https://ayats.org/blog/nix-rustup/#rust-analyzer:
-      export RUST_SRC_PATH=~/.rustup}/toolchains/$RUSTC_VERSION-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library";
+      # export RUST_SRC_PATH="$HOME/.rustup/toolchains/$RUSTC_VERSION-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library";
 
       export DATABASE_URL="sqlite:db.sqlite"
+
+      alias vim=nvim
       '';
     # Add precompiled library to rustc search path
     RUSTFLAGS = (builtins.map (a: ''-L ${a}/lib'') [
