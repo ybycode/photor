@@ -22,7 +22,7 @@ pub async fn insert_photo(pool: &SqlitePool, photo: NewPhoto) -> Result<i64> {
             create_date,
             filename,
             directory,
-            partial_hash,
+            partial_sha256_hash,
             file_size_bytes,
             image_height,
             image_width,
@@ -42,7 +42,7 @@ pub async fn insert_photo(pool: &SqlitePool, photo: NewPhoto) -> Result<i64> {
         photo.create_date,
         photo.filename,
         photo.directory,
-        photo.partial_hash,
+        photo.partial_sha256_hash,
         photo.file_size_bytes,
         photo.image_height,
         photo.image_width,
@@ -69,7 +69,7 @@ pub async fn photo_lookup_by_partial_hash(pool: &SqlitePool, hash: &str) -> Opti
     sqlx::query_as!(
         Photo,
         r#"
-        select * from photos where partial_hash = ?1
+        select * from photos where partial_sha256_hash = ?1
         "#,
         hash
     )
