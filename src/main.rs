@@ -16,8 +16,6 @@ pub mod models;
 pub mod photoexif;
 pub mod webserver;
 
-println!("hello");
-
 const PARTIAL_HASH_NBYTES: u64 = 1024 * 512;
 
 #[derive(Parser)]

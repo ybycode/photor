@@ -20,6 +20,7 @@ serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0.96"
 sha2 = "=0.10.8"
 sqlx = { version = "0.7.2", features = ["sqlite", "runtime-tokio-native-tls"] }
+tera = "1"
 tokio = { version = "1.31.0", features = ["full"] }
 tower-http = { version = "0.4", features = ["fs"] }
 walkdir = "2.3.3"
