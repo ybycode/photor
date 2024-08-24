@@ -2,6 +2,8 @@ Hello, <b>tera</b>!
 
 <ul>
 {% for directory in directories %}
-  <li>{{ directory }}</li>
+  <li>
+    <a href="/{{directory}}">{{ directory }}</a>
+  </li>
 {% endfor %}
 </ul>
