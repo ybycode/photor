@@ -25,6 +25,14 @@ defmodule PhotorUiWeb.Endpoint do
     gzip: false,
     only: PhotorUiWeb.static_paths()
 
+  plug Plug.Static,
+    at: "/photos/",
+    # from needs to be an absolute path if not contained in the app
+    # directory. "../photos" doesn't work.
+    # TODO: read this from the configuration:
+    from: "/home/yann/code/photor/photoos",
+    gzip: false
+
   # Code reloading can be explicitly enabled under the
   # :code_reloader configuration of your endpoint.
   if code_reloading? do
