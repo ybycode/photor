@@ -20,6 +20,11 @@ if System.get_env("PHX_SERVER") do
   config :photor_ui, PhotorUiWeb.Endpoint, server: true
 end
 
+config :photor_ui, photor_dir: System.fetch_env!("PHOTOR_DIR")
+
+config :photor_ui, PhotorUi.Repo,
+  database: Path.join(System.fetch_env!("PHOTOR_DIR"), "db.sqlite")
+
 if config_env() == :prod do
   database_path =
     System.get_env("DATABASE_PATH") ||
