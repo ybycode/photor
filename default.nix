@@ -16,7 +16,7 @@ rustPlatform.buildRustPackage rec {
   src = ./.;
 
   # cargoSha256 = "0000000000000000000000000000000000000000000000000000";
-  cargoSha256 = "sha256-LkphuWJsgCV4FV0AJehQaO8Xvnsn7/3MVCLSbBkecM4=";
+  cargoSha256 = "sha256-gm1ps8qGDUYte+DuejqwH+FHP4mc1dC+iRW5kkAkfqM=";
   buildInputs = with pkgs; [
     makeWrapper # provides wrapProgram, see postInstall
     openssl
