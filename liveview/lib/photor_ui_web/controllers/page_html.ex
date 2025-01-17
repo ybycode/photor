@@ -8,7 +8,8 @@ defmodule PhotorUiWeb.PageHTML do
 
   embed_templates "page_html/*"
 
-  def photo_url(date, photo_filename) do
-    Path.join(["/photos", Date.to_string(date), photo_filename])
+  def photo_url_preview(date, photo_filename) do
+    preview_filename = String.replace_suffix(photo_filename, ".jpg", "_thumbnail_800px.jpg")
+    Path.join(["/photos", date, preview_filename])
   end
 end

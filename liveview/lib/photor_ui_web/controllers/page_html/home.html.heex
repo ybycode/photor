@@ -7,7 +7,7 @@
   <ul>
     <%= for photo <- @photos do %>
       <li>
-      <img src={photo_url(@date, photo.filename)} /><%= photo.filename %>
+      <img src={photo_url_preview(@date, photo.filename)} /><%= photo.filename %>
       </li>
     <% end %>
 

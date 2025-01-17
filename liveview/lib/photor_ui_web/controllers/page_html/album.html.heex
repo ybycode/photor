@@ -1,0 +1,13 @@
+<.flash_group flash={@flash} />
+
+<div class="image-gallery">
+  <ul>
+    <%= for photo <- @photos do %>
+      <li>
+        <a href="./home.html.heex">
+          <img src={photo_url_preview(@date, photo.filename)} />
+        </a>
+      </li>
+    <% end %>
+  </ul>
+</div>
