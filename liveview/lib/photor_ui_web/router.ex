@@ -18,7 +18,9 @@ defmodule PhotorUiWeb.Router do
     pipe_through :browser
 
     get "/", PageController, :home
-    get "/:date", PageController, :album
+    live "/albums", AlbumsLive.Index
+    live "/albums/:date", AlbumsLive.Show
+    # get "/:date", PageController, :album
   end
 
   # Other scopes may use custom stacks.
