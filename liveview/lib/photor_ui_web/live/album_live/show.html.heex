@@ -4,16 +4,16 @@
 <.link patch={~p"/albums/"}>Back to index</.link>
 
 <div class="image-gallery">
-  <!--
-  <div class="overlay">
-    <img src={photo_url_preview(@date, List.first(@photos).filename)} />
-  </div>
-  -->
+  <%= if(not is_nil(@previewed_photo_index)) do %>
+    <div class="overlay" phx-click="hide-preview" id="gallery-overlay" phx-hook="PreviewKeyboardNavigation">
+      <img src={photo_url_preview(@photos, @previewed_photo_index)} />
+    </div>
+  <% end %>
   <ul>
-    <%= for photo <- @photos do %>
+    <%= for {_photo, photo_index} <- Enum.with_index(@photos) do %>
       <li>
-        <a phx-click="open-preview">
-          <img src={photo_url_preview(@date, photo.filename)} />
+        <a phx-click="open-preview" phx-value-photo-index={photo_index}>
+          <img src={photo_url_preview(@photos, photo_index)} />
         </a>
       </li>
     <% end %>
