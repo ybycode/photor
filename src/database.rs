@@ -20,6 +20,7 @@ pub async fn insert_photo(pool: &SqlitePool, photo: NewPhoto) -> Result<i64> {
         r#"
         insert into photos (
             create_date,
+            inserted_at,
             filename,
             directory,
             partial_sha256_hash,
@@ -37,7 +38,7 @@ pub async fn insert_photo(pool: &SqlitePool, photo: NewPhoto) -> Result<i64> {
             lens_make,
             lens_model
         )
-        values (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17)
+        values (?1, datetime('now'), ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17)
         "#,
         photo.create_date,
         photo.filename,

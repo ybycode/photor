@@ -31,7 +31,7 @@ CREATE TABLE photos (
   create_date text not null,
   create_day text,
   partial_sha256_hash text not null,
-  inserted_at text not null -- Added column without a default value
+  inserted_at text not null
 );
 
 -- Step 5: Copy data from the old table to the new table
@@ -41,3 +41,21 @@ FROM photos_old;
 
 -- Step 6: Drop the old table
 DROP TABLE photos_old;
+
+-- Step 7: Recreate the indexes and trigger:
+
+CREATE INDEX full_sha256_hash_index on photos(full_sha256_hash);
+CREATE TRIGGER update_create_day_after_insert
+after insert on photos
+for each row
+begin
+   update photos set create_day = date(new.create_date) where rowid = new.rowid;
+end;
+CREATE TRIGGER update_create_day_after_update
+after update of create_date on photos
+for each row
+begin
+   update photos set create_day = date(new.create_date) where rowid = new.rowid;
+end;
+CREATE INDEX idx_create_day on photos(create_day);
+CREATE INDEX photo_partial_sha256_hash_index on photos(partial_sha256_hash);
