@@ -20,6 +20,7 @@ pub struct Photo {
     pub lens_model: Option<String>,
     pub create_date: String,
     pub create_day: Option<String>,
+    pub inserted_at: String,
 }
 
 pub struct NewPhoto {

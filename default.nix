@@ -12,11 +12,11 @@ let
 in
 rustPlatform.buildRustPackage rec {
   name = "photor";
-  version = "0.5.0";
+  version = "0.5.1";
   src = ./.;
 
   # cargoSha256 = "0000000000000000000000000000000000000000000000000000";
-  cargoSha256 = "sha256-gm1ps8qGDUYte+DuejqwH+FHP4mc1dC+iRW5kkAkfqM=";
+  cargoSha256 = "sha256-zoFRR8YQyhzSaN7JaFS9IYRxe7conQg6D/NBYVqvX8U=";
   buildInputs = with pkgs; [
     makeWrapper # provides wrapProgram, see postInstall
     openssl
