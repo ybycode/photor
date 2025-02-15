@@ -1,6 +1,6 @@
 use crate::models::{NewPhoto, Photo};
 use anyhow::Result;
-use sqlx::sqlite::SqlitePool;
+use sqlx::sqlite::{SqlitePool, SqliteRow};
 
 pub async fn pool() -> Result<SqlitePool> {
     let pool = SqlitePool::connect("sqlite:db.sqlite").await?;
@@ -79,12 +79,30 @@ pub async fn photo_lookup_by_partial_hash(pool: &SqlitePool, hash: &str) -> Opti
     .unwrap()
 }
 
+pub async fn list_directories(pool: &SqlitePool) -> anyhow::Result<Vec<String>> {
+    let stream = sqlx::query!(
+        r#"
+SELECT DISTINCT directory
+FROM photos
+ORDER BY directory DESC
+        "#,
+    )
+    .fetch_all(pool)
+    .await?
+    .into_iter()
+    .map(|photo| photo.directory)
+    .collect();
+
+    Ok(stream)
+}
+
 pub async fn list_photos(pool: &SqlitePool) -> anyhow::Result<Vec<Photo>> {
     let stream = sqlx::query_as::<_, Photo>(
         r#"
 SELECT *
 FROM photos
 ORDER BY create_date, id
+LIMIT 100
         "#,
     )
     .fetch_all(pool)
