@@ -5,6 +5,13 @@ create table archives (
   inserted_at text not null
 );
 
+create table archive_tags (
+    archive_id integer not null,
+    tag text not null,
+    foreign key (archive_id) references archives(id) on delete cascade,
+    unique (archive_id, tag)
+);
+
 create table archives_holders (
   id integer primary key not null,
   archive_id text not null,
@@ -12,7 +19,7 @@ create table archives_holders (
   given_from text,
   back_on text,
 
-  foreign key (archive_id) references archives (id)
+  foreign key (archive_id) references archives (id) on delete cascade
 );
 
 create table archives_items (
@@ -21,6 +28,6 @@ create table archives_items (
   item_id integer not null,
   inserted_at text not null,
 
-  foreign key (archive_id) references archives (id),
-  foreign key (item_id) references photos (id)
+  foreign key (archive_id) references archives (id) on delete cascade,
+  foreign key (item_id) references photos (id) on delete cascade
 );
