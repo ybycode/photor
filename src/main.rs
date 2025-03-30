@@ -38,6 +38,34 @@ struct ImportArgs {
     directory: PathBuf,
 }
 
+#[derive(Args)]
+struct ArchiveNewArgs {
+    /// Name of the new archive
+    #[arg(long)]
+    name: String,
+}
+
+#[derive(Args)]
+struct ArchivePopulateArgs {
+    /// Argument for populate
+    #[arg(long)]
+    arg: i32,
+}
+
+#[derive(Subcommand)]
+enum ArchiveCommand {
+    /// Create a new archive
+    New(ArchiveNewArgs),
+    /// Populate an archive
+    Populate(ArchivePopulateArgs),
+}
+
+#[derive(Args)]
+struct ArchiveArgs {
+    #[command(subcommand)]
+    command: ArchiveCommand,
+}
+
 #[derive(Subcommand)]
 enum Commands {
     /// Initializes a new repository
@@ -53,6 +81,8 @@ enum Commands {
 
     /// Migrate the database
     Migrate,
+
+    Archive(ArchiveArgs),
 }
 
 #[tokio::main(flavor = "current_thread")]
@@ -71,7 +101,20 @@ async fn main() -> anyhow::Result<()> {
         Some(Commands::Import(import_args)) => {
             return import(&import_args.directory).await;
         }
-
+        Some(Commands::Archive(archive_args)) => {
+            return match &archive_args.command {
+                ArchiveCommand::New(args) => {
+                    info!("Creating new archive: {}", args.name);
+                    // Implementation here
+                    Ok(())
+                }
+                ArchiveCommand::Populate(args) => {
+                    info!("Populating archive with arg: {}", args.arg);
+                    // Implementation here
+                    Ok(())
+                }
+            };
+        }
         None => (),
     };
 
