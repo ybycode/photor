@@ -2,58 +2,23 @@
 extern crate log;
 
 use crate::models::NewPhoto;
-use clap::{Args, Parser, Subcommand};
 use env_logger::Env;
 use log::{error, info};
 use sqlx::sqlite::SqlitePool;
 use std::fs::File;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 pub mod checksum;
+pub mod cli;
 pub mod database;
 pub mod files;
 pub mod models;
 pub mod photoexif;
 
+use crate::cli::{Cli, Commands};
+use clap::Parser;
+
 const PARTIAL_HASH_NBYTES: u64 = 1024 * 512;
-
-#[derive(Parser)]
-#[command(author, version, about, long_about = None)]
-struct Cli {
-    /// Sets a custom config file
-    #[arg(short, long, value_name = "FILE")]
-    config: Option<PathBuf>,
-
-    /// Sets the target repository (defaults to the current directory)
-    #[arg(short, long, value_name = "DIRECTORY")]
-    repo: Option<PathBuf>,
-
-    #[command(subcommand)]
-    command: Option<Commands>,
-}
-
-#[derive(Args)]
-struct ImportArgs {
-    /// where the files to import are
-    directory: PathBuf,
-}
-
-#[derive(Subcommand)]
-enum Commands {
-    /// Initializes a new repository
-    Init {
-        /// the directory where to create the repository (defaults to the current directory)
-        #[arg(short, long)]
-        directory: Option<PathBuf>,
-    },
-    List,
-
-    /// Import photos from a directory into the repository
-    Import(ImportArgs),
-
-    /// Migrate the database
-    Migrate,
-}
 
 #[tokio::main(flavor = "current_thread")]
 async fn main() -> anyhow::Result<()> {
@@ -65,7 +30,7 @@ async fn main() -> anyhow::Result<()> {
     // You can check for the existence of subcommands, and if found use their
     // matches just as you would the top level cmd
     match &cli.command {
-        Some(Commands::Init { directory }) => init(directory),
+        Some(Commands::Init(args)) => cli::init::run(args),
         Some(Commands::Migrate) => return database::migrate().await,
         Some(Commands::List) => return list_photos().await,
         Some(Commands::Import(import_args)) => {
@@ -76,12 +41,6 @@ async fn main() -> anyhow::Result<()> {
     };
 
     Ok(())
-}
-
-fn init(opt_directory: &Option<PathBuf>) {
-    let current_dir = std::env::current_dir().expect("Failed to get the current directory");
-    let dest = opt_directory.as_ref().unwrap_or_else(|| &current_dir);
-    println!("TODO: Initialization of a new repo in {:?}", dest);
 }
 
 async fn list_photos() -> anyhow::Result<()> {
