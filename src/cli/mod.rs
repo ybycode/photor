@@ -1,5 +1,13 @@
+use crate::commands::import as cmd_import;
+use crate::commands::list_photos as cmd_list_photos;
+use crate::database;
 use clap::{Parser, Subcommand};
 use std::path::PathBuf;
+
+// use crate::cli::{Cli, Commands};
+
+pub mod import;
+pub mod init;
 
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
@@ -31,5 +39,21 @@ pub enum Commands {
     Migrate,
 }
 
-pub mod import;
-pub mod init;
+pub async fn run() -> anyhow::Result<()> {
+    let cli = Cli::parse();
+
+    // You can check for the existence of subcommands, and if found use their
+    // matches just as you would the top level cmd
+    match &cli.command {
+        Some(Commands::Init(args)) => init::run(args),
+        Some(Commands::Migrate) => return database::migrate().await,
+        Some(Commands::List) => return cmd_list_photos::run().await,
+        Some(Commands::Import(import_args)) => {
+            return cmd_import::run(&import_args.directory).await;
+        }
+
+        None => (),
+    };
+
+    Ok(())
+}
