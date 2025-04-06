@@ -6,6 +6,7 @@ use std::path::PathBuf;
 
 // use crate::cli::{Cli, Commands};
 
+pub mod archive;
 pub mod import;
 pub mod init;
 
@@ -37,6 +38,8 @@ pub enum Commands {
 
     /// Migrate the database
     Migrate,
+
+    Archive(archive::ArchiveArgs),
 }
 
 pub async fn run() -> anyhow::Result<()> {
@@ -50,6 +53,9 @@ pub async fn run() -> anyhow::Result<()> {
         Some(Commands::List) => return cmd_list_photos::run().await,
         Some(Commands::Import(import_args)) => {
             return cmd_import::run(&import_args.directory).await;
+        }
+        Some(Commands::Archive(archive_args)) => {
+            return archive::match_subcommand(&archive_args.command)
         }
 
         None => (),
