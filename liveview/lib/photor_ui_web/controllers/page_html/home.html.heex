@@ -1,0 +1,17 @@
+<.flash_group flash={@flash} />
+<div>
+  Hello <%= @date %>
+
+  <h1>Photos</h1>
+
+  <ul>
+    <%= for photo <- @photos do %>
+      <li>
+      <img src={photo_url_preview(@date, photo.filename)} /><%= photo.filename %>
+      </li>
+    <% end %>
+
+
+  </ul>
+
+</div>

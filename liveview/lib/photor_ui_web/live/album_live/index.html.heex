@@ -1,0 +1,9 @@
+<h1>Index</h1>
+
+<ul>
+  <%= for album <- @albums do %>
+    <li>
+      <.link patch={~p"/albums/#{album}"}>{ album }</.link>
+    </li>
+  <% end %>
+</ul>

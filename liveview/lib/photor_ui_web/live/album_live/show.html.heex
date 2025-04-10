@@ -1,0 +1,21 @@
+<.flash_group flash={@flash} />
+
+
+<.link patch={~p"/albums/"}>Back to index</.link>
+
+<div class="image-gallery">
+  <%= if(not is_nil(@previewed_photo_index)) do %>
+    <div class="overlay" phx-click="hide-preview" id="gallery-overlay" phx-hook="PreviewKeyboardNavigation">
+      <img src={photo_url_preview(@photos, @previewed_photo_index)} />
+    </div>
+  <% end %>
+  <ul>
+    <%= for {_photo, photo_index} <- Enum.with_index(@photos) do %>
+      <li>
+        <a phx-click="open-preview" phx-value-photo-index={photo_index}>
+          <img src={photo_url_preview(@photos, photo_index)} />
+        </a>
+      </li>
+    <% end %>
+  </ul>
+</div>

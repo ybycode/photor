@@ -1,0 +1,18 @@
+<.flash_group flash={@flash} />
+
+<div class="image-gallery">
+  <!--
+  <div class="overlay">
+    <img src={photo_url_preview(@date, List.first(@photos).filename)} />
+  </div>
+  -->
+  <ul>
+    <%= for photo <- @photos do %>
+      <li>
+        <a phx-click="open-preview">
+          <img src={photo_url_preview(@date, photo.filename)} />
+        </a>
+      </li>
+    <% end %>
+  </ul>
+</div>
