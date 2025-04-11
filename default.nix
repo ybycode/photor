@@ -12,7 +12,7 @@ let
 in
 rustPlatform.buildRustPackage rec {
   name = "photor";
-  version = "0.5.1";
+  version = "0.5.2";
   src = ./.;
 
   # cargoSha256 = "0000000000000000000000000000000000000000000000000000";

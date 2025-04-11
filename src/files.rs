@@ -8,7 +8,7 @@ use walkdir::{DirEntry, Error as WalkDirError, WalkDir};
 lazy_static! {
     static ref PHOTO_FILES_EXTENSIONS: HashSet<String> = {
         // here are defined the file extensions looked for by the WalkDir iterator:
-        ["jpg", "jpeg", "mp4", "mov", "png", "raw", "raf"]
+        ["dng", "jpg", "jpeg", "mp4", "mov", "png", "raw", "raf"]
             .iter()
             .map(|ext| ext.to_lowercase())
             .collect()
