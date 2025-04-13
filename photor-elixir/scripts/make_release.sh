@@ -4,6 +4,6 @@ set -euo pipefail
 
 export MIX_ENV=prod
 
-mix assets.build
-mix assets.deploy
+mix deps.get
+mix do assets.setup, assets.build, assets.deploy
 mix release --overwrite
