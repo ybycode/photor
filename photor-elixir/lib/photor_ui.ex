@@ -1,6 +1,6 @@
-defmodule PhotorUi do
+defmodule Photor do
   @moduledoc """
-  PhotorUi keeps the contexts that define your domain
+  Photor keeps the contexts that define your domain
   and business logic.
 
   Contexts are also responsible for managing your data, regardless

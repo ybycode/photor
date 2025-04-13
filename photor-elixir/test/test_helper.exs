@@ -1,2 +1,2 @@
 ExUnit.start()
-Ecto.Adapters.SQL.Sandbox.mode(PhotorUi.Repo, :manual)
+Ecto.Adapters.SQL.Sandbox.mode(Photor.Repo, :manual)

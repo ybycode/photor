@@ -1,2 +1,2 @@
-alias PhotorUi.Repo
-alias PhotorUi.Photos
+alias Photor.Repo
+alias Photor.Photos

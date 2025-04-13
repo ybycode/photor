@@ -1,4 +1,4 @@
-# PhotorUi
+# Photor
 
 To start your Phoenix server:
 

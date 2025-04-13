@@ -7,25 +7,25 @@
 # General application configuration
 import Config
 
-config :photor_ui,
-  ecto_repos: [PhotorUi.Repo],
+config :photor,
+  ecto_repos: [Photor.Repo],
   generators: [timestamp_type: :utc_datetime]
 
 # Configures the endpoint
-config :photor_ui, PhotorUiWeb.Endpoint,
+config :photor, PhotorWeb.Endpoint,
   url: [host: "localhost"],
   adapter: Bandit.PhoenixAdapter,
   render_errors: [
-    formats: [html: PhotorUiWeb.ErrorHTML, json: PhotorUiWeb.ErrorJSON],
+    formats: [html: PhotorWeb.ErrorHTML, json: PhotorWeb.ErrorJSON],
     layout: false
   ],
-  pubsub_server: PhotorUi.PubSub,
+  pubsub_server: Photor.PubSub,
   live_view: [signing_salt: "EDZNykio"]
 
 # Configure esbuild (the version is required)
 config :esbuild,
   version: "0.17.11",
-  photor_ui: [
+  photor: [
     args:
       ~w(js/app.js --bundle --target=es2017 --outdir=../priv/static/assets --external:/fonts/* --external:/images/*),
     cd: Path.expand("../assets", __DIR__),
@@ -35,7 +35,7 @@ config :esbuild,
 # Configure tailwind (the version is required)
 config :tailwind,
   version: "3.4.3",
-  photor_ui: [
+  photor: [
     args: ~w(
       --config=tailwind.config.js
       --input=css/app.css

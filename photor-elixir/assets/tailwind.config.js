@@ -8,8 +8,8 @@ const path = require("path")
 module.exports = {
   content: [
     "./js/**/*.js",
-    "../lib/photor_ui_web.ex",
-    "../lib/photor_ui_web/**/*.*ex"
+    "../lib/photor_web.ex",
+    "../lib/photor_web/**/*.*ex"
   ],
   theme: {
     extend: {

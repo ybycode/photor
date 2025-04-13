@@ -2,4 +2,4 @@
 set -eu
 
 cd -P -- "$(dirname -- "$0")"
-exec ./photor_app eval PhotorUi.Release.migrate
+exec ./photor_app eval Photor.Release.migrate

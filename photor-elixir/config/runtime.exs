@@ -12,21 +12,21 @@ import Config
 # If you use `mix release`, you need to explicitly enable the server
 # by passing the PHX_SERVER=true when you start it:
 #
-#     PHX_SERVER=true bin/photor_ui start
+#     PHX_SERVER=true bin/photor start
 #
 # Alternatively, you can use `mix phx.gen.release` to generate a `bin/server`
 # script that automatically sets the env var above.
 if System.get_env("PHX_SERVER") do
-  config :photor_ui, PhotorUiWeb.Endpoint, server: true
+  config :photor, PhotorWeb.Endpoint, server: true
 end
 
-config :photor_ui, photor_dir: System.fetch_env!("PHOTOR_DIR")
+config :photor, photor_dir: System.fetch_env!("PHOTOR_DIR")
 
-config :photor_ui, PhotorUi.Repo,
+config :photor, Photor.Repo,
   database: Path.join(System.fetch_env!("PHOTOR_DIR"), "db.sqlite")
 
 if config_env() == :prod do
-  config :photor_ui, PhotorUi.Repo,
+  config :photor, Photor.Repo,
     pool_size: String.to_integer(System.get_env("POOL_SIZE") || "5")
 
   # The secret key base is used to sign/encrypt cookies and other secrets.
@@ -44,9 +44,9 @@ if config_env() == :prod do
   host = System.get_env("PHX_HOST") || "example.com"
   port = String.to_integer(System.get_env("PORT") || "4000")
 
-  config :photor_ui, :dns_cluster_query, System.get_env("DNS_CLUSTER_QUERY")
+  config :photor, :dns_cluster_query, System.get_env("DNS_CLUSTER_QUERY")
 
-  config :photor_ui, PhotorUiWeb.Endpoint,
+  config :photor, PhotorWeb.Endpoint,
     url: [host: host, port: 4000, scheme: "http"],
     http: [
       # Enable IPv6 and bind on all interfaces.
@@ -63,7 +63,7 @@ if config_env() == :prod do
   # To get SSL working, you will need to add the `https` key
   # to your endpoint configuration:
   #
-  #     config :photor_ui, PhotorUiWeb.Endpoint,
+  #     config :photor, PhotorWeb.Endpoint,
   #       https: [
   #         ...,
   #         port: 443,
@@ -85,7 +85,7 @@ if config_env() == :prod do
   # We also recommend setting `force_ssl` in your config/prod.exs,
   # ensuring no data is ever sent via http, always redirecting to https:
   #
-  #     config :photor_ui, PhotorUiWeb.Endpoint,
+  #     config :photor, PhotorWeb.Endpoint,
   #       force_ssl: [hsts: true]
   #
   # Check `Plug.SSL` for all available options in `force_ssl`.

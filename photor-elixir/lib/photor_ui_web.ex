@@ -1,12 +1,12 @@
-defmodule PhotorUiWeb do
+defmodule PhotorWeb do
   @moduledoc """
   The entrypoint for defining your web interface, such
   as controllers, components, channels, and so on.
 
   This can be used in your application as:
 
-      use PhotorUiWeb, :controller
-      use PhotorUiWeb, :html
+      use PhotorWeb, :controller
+      use PhotorWeb, :html
 
   The definitions below will be executed for every controller,
   component, etc, so keep them short and clean, focused
@@ -40,9 +40,9 @@ defmodule PhotorUiWeb do
     quote do
       use Phoenix.Controller,
         formats: [:html, :json],
-        layouts: [html: PhotorUiWeb.Layouts]
+        layouts: [html: PhotorWeb.Layouts]
 
-      use Gettext, backend: PhotorUiWeb.Gettext
+      use Gettext, backend: PhotorWeb.Gettext
 
       import Plug.Conn
 
@@ -53,7 +53,7 @@ defmodule PhotorUiWeb do
   def live_view do
     quote do
       use Phoenix.LiveView,
-        layout: {PhotorUiWeb.Layouts, :app}
+        layout: {PhotorWeb.Layouts, :app}
 
       unquote(html_helpers())
     end
@@ -83,12 +83,12 @@ defmodule PhotorUiWeb do
   defp html_helpers do
     quote do
       # Translation
-      use Gettext, backend: PhotorUiWeb.Gettext
+      use Gettext, backend: PhotorWeb.Gettext
 
       # HTML escaping functionality
       import Phoenix.HTML
       # Core UI components
-      import PhotorUiWeb.CoreComponents
+      import PhotorWeb.CoreComponents
 
       # Shortcut for generating JS commands
       alias Phoenix.LiveView.JS
@@ -101,9 +101,9 @@ defmodule PhotorUiWeb do
   def verified_routes do
     quote do
       use Phoenix.VerifiedRoutes,
-        endpoint: PhotorUiWeb.Endpoint,
-        router: PhotorUiWeb.Router,
-        statics: PhotorUiWeb.static_paths()
+        endpoint: PhotorWeb.Endpoint,
+        router: PhotorWeb.Router,
+        statics: PhotorWeb.static_paths()
     end
   end
 
