@@ -40,3 +40,4 @@ npm-debug.log
 *.db-*
 
 priv/static
+.elixir_ls

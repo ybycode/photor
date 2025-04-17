@@ -2,4 +2,16 @@
 set -eu
 
 cd -P -- "$(dirname -- "$0")"
-echo "PHOTOR YOO"
+
+elixir_args=()
+for arg in "$@"; do
+  # Escape existing double quotes and wrap each argument in Elixir quotes
+  escaped_arg="${arg//\"/\\\"}" # Escape " -> \"
+  elixir_args+=("\"${escaped_arg}\"") # Wrap in Elixir quotes: "arg"
+done
+
+# Join arguments with commas and wrap in [ ] to form an Elixir list
+joined_args=$(IFS=,; echo "${elixir_args[*]}")
+elixir_list="[${joined_args}]"
+
+exec ./photor_app rpc "Photor.CLI.main($elixir_list)"
