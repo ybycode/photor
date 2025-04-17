@@ -14,5 +14,4 @@ done
 joined_args=$(IFS=,; echo "${elixir_args[*]}")
 elixir_list="[${joined_args}]"
 
-# exec ./photor_app rpc "Photor.CLI.main($elixir_list)"
-exec ./photor_app rpc "ExCLI.run(Photor.CLI, $elixir_list)"
+exec ./photor_app rpc "Photor.CLI.main($elixir_list)"
