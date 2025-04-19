@@ -13,8 +13,6 @@ if [[ $# -ne 1 ]]; then
   exit 1
 fi
 
-export SECRET_KEY_BASE="$(mix phx.gen.secret)"
 export PHOTOR_DIR="$1"
-export PHX_HOST=localhost
 
 _build/prod/rel/photor_app/bin/server
