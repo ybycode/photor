@@ -1,6 +1,6 @@
 # To build:
 #
-#     $ nix-build -E '
+#   $ nix-build -E '
 #       with import <nixpkgs> {};
 #       callPackage ./default.nix {
 #         inherit (beamPackages) fetchMixDeps mixRelease;
@@ -80,7 +80,7 @@ mixRelease {
     '';
     longDescription = ''
     '';
-    license = licenses.asl20;
+    license = licenses.agpl3Plus;
     platforms = platforms.unix;
     mainProgram = "photor-ex";
     # maintainers = teams.beam.members;

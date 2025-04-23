@@ -11,7 +11,7 @@ defmodule Photor.MixProject do
       aliases: aliases(),
       deps: deps(),
       releases: [
-        photor_app: [
+        photor_ex: [
           include_executables_for: [:unix]
         ]
       ]
