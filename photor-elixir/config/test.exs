@@ -6,7 +6,7 @@ import Config
 # to provide built-in test partitioning in CI environment.
 # Run `mix help test` for more information.
 config :photor, Photor.Repo,
-  database: Path.expand("../photor_test.db", __DIR__),
+  database: Path.expand("../test/photos_repo/photor.sqlite", __DIR__),
   pool_size: 5,
   pool: Ecto.Adapters.SQL.Sandbox
 
