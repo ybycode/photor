@@ -20,9 +20,10 @@ if System.get_env("PHX_SERVER") do
   config :photor, PhotorWeb.Endpoint, server: true
 end
 
-config :photor, photor_dir: System.fetch_env!("PHOTOR_DIR")
-
-config :photor, Photor.Repo, database: Path.join(System.fetch_env!("PHOTOR_DIR"), "db.sqlite")
+if config_env() in [:dev, :prod] do
+  config :photor, photor_dir: System.fetch_env!("PHOTOR_DIR")
+  config :photor, Photor.Repo, database: Path.join(System.fetch_env!("PHOTOR_DIR"), "db.sqlite")
+end
 
 if config_env() == :prod do
   config :photor, Photor.Repo, pool_size: String.to_integer(System.get_env("POOL_SIZE") || "5")

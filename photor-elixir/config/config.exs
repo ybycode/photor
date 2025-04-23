@@ -11,6 +11,34 @@ config :photor,
   ecto_repos: [Photor.Repo],
   generators: [timestamp_type: :utc_datetime]
 
+config :photor, Photor.FileExtensions,
+  # Those definitions are required at compile time:
+  data: %{
+    {:photo, :raw} => [
+      "3fr",
+      "arw",
+      "cr2",
+      "cr3",
+      "dng",
+      "fff",
+      "nef",
+      "nrw",
+      "orf",
+      "pef",
+      "raf",
+      "raw",
+      "rw2",
+      "sr2",
+      "srf",
+      "x3f"
+    ],
+    {:photo, :compressed} => ["jpg", "jpeg", "heic", "heif"],
+    # mxf can also be used for raw video (sony). This software will detect them
+    # as compressed.
+    {:video, :compressed} => ["avi", "mov", "mp4", "mxf"],
+    {:video, :raw} => ["crm"]
+  }
+
 # Configures the endpoint
 config :photor, PhotorWeb.Endpoint,
   url: [host: "localhost"],
