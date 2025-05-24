@@ -9,6 +9,9 @@ mkShell {
     elixir-ls
     inotify-tools
     sqlite
+
+    # runtime dependency of the app:
+    exiftool
   ];
 
   PROJECT_ROOT = builtins.toString ./.;

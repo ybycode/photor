@@ -42,3 +42,5 @@ npm-debug.log
 priv/static
 .mix_archives
 result
+.aider*
+.env
