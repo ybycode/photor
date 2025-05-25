@@ -1,70 +1,52 @@
 defmodule Photor.Metadata do
   alias Photor.Metadata.MainMetadata
-  alias Photor.Metadata.Exiftool
   alias Photor.Metadata.ShutterSpeedDecoder
 
+  @exiftool_module Application.compile_env(:photor, :exiftool_module, Photor.Metadata.Exiftool)
+
+  @doc """
+  Reads metadata from a photo file and returns a structured MainMetadata struct.
+  """
   def read(photo_path) do
-    case Exiftool.read_as_json(photo_path) do
-      {:ok, result} ->
-        parse_json(result)
+    case @exiftool_module.read_as_json(photo_path) do
+      {:ok, exif_data} ->
+        extract_main_metadata(exif_data)
 
-      {:error, exit_code, reason} ->
-        {:error, "Failed to execute exiftool (exit code #{exit_code}, reason: #{reason})"}
+      {:error, :file_not_found} ->
+        {:error, "File not found: #{photo_path}"}
+
+      {:error, reason} ->
+        {:error, "Failed to read metadata: #{inspect(reason)}"}
     end
   end
 
-  defp parse_json(json_data) do
-    with {:ok, photo_exif} <- decode_pexif(json_data) do
-      {:ok, photo_exif}
-    else
-      error when is_atom(error) or is_binary(error) ->
-        {:error, "Failed to decode EXIF JSON: #{inspect(error)}"}
-
-      _ ->
-        {:error, "No EXIF data found"}
-    end
-  end
-
-  defp map(map, key), do: Map.get(map, key)
-  defp map(map, key, map_fn), do: Map.get(map, key) |> map_fn.()
-
-  defp decode_pexif(data) do
-    # Helper to safely fetch and map keys
-    date_time_original = map(data, "DateTimeOriginal")
-    create_date = map(data, "CreateDate")
-    image_height = map(data, "ImageHeight", &parse_int/1)
-    image_width = map(data, "ImageWidth", &parse_int/1)
-    mime_type = map(data, "MIMEType")
-    iso = map(data, "ISO", &parse_int/1)
-    aperture = map(data, "Aperture", &parse_float/1)
-    focal_length = map(data, "FocalLength")
-    make = map(data, "Make")
-    model = map(data, "Model")
-    lens_info = map(data, "LensInfo") || map(data, "LensType")
-    lens_make = map(data, "LensMake")
-    lens_model = map(data, "LensModel")
-
+  defp extract_main_metadata(exif_data) do
     with {:ok, shutter_speed} <-
-           map(data, "ShutterSpeed", &ShutterSpeedDecoder.decode/1) do
+           map_key(exif_data, "ShutterSpeed", &ShutterSpeedDecoder.decode/1) do
       {:ok,
        %MainMetadata{
-         date_time_original: date_time_original,
-         create_date: create_date,
-         image_height: image_height,
-         image_width: image_width,
-         mime_type: mime_type,
-         iso: iso,
-         aperture: aperture,
+         date_time_original: map_key(exif_data, "DateTimeOriginal"),
+         create_date: map_key(exif_data, "CreateDate"),
+         image_height: map_key(exif_data, "ImageHeight", &parse_int/1),
+         image_width: map_key(exif_data, "ImageWidth", &parse_int/1),
+         mime_type: map_key(exif_data, "MIMEType"),
+         iso: map_key(exif_data, "ISO", &parse_int/1),
+         aperture: map_key(exif_data, "Aperture", &parse_float/1),
          shutter_speed: shutter_speed,
-         focal_length: focal_length,
-         make: make,
-         model: model,
-         lens_info: lens_info,
-         lens_make: lens_make,
-         lens_model: lens_model
+         focal_length: map_key(exif_data, "FocalLength"),
+         make: map_key(exif_data, "Make"),
+         model: map_key(exif_data, "Model"),
+         lens_info: map_key(exif_data, "LensInfo") || map_key(exif_data, "LensType"),
+         lens_make: map_key(exif_data, "LensMake"),
+         lens_model: map_key(exif_data, "LensModel")
        }}
+    else
+      {:error, reason} -> {:error, "Failed to process shutter speed: #{reason}"}
     end
   end
+
+  defp map_key(map, key), do: Map.get(map, key)
+  defp map_key(map, key, map_fn), do: Map.get(map, key) |> map_fn.()
 
   defp parse_int(nil), do: nil
   defp parse_int(val) when is_binary(val), do: String.to_integer(val)

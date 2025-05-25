@@ -2,6 +2,7 @@ defmodule Photor.Metadata.Exiftool do
   @default_exiftool_binary "exiftool"
 
   require Logger
+  @behaviour Photor.Metadata.ExiftoolBehaviour
 
   def read_as_json(photo_path) do
     exiftool_binary()
@@ -10,29 +11,29 @@ defmodule Photor.Metadata.Exiftool do
   end
 
   def call_binary(exiftool_binary, photo_path) when is_binary(photo_path) do
-    try do
-      System.cmd(exiftool_binary, ["-json", "-d", "%Y-%m-%d %H:%M:%S", photo_path],
-        stderr_to_stdout: true
-      )
-    catch
-      :error, :enoent ->
-        raise(
-          "Error reading a file's metadata: the \"#{exiftool_binary}\" " <>
-            "executable is not available."
-        )
+    if not File.exists?(photo_path) do
+      {:error, :file_not_found}
     else
-      {response, 0} ->
-        {:ok, response}
+      args = ["-json", "-d", "%Y-%m-%d %H:%M:%S", photo_path]
 
-      {response, exit_code} when is_binary(response) ->
-        Logger.error(
-          "Call to #{exiftool_binary} failed with exit code #{exit_code} and message \"#{response}\""
-        )
+      try do
+        case System.cmd(exiftool_binary, args, stderr_to_stdout: true) do
+          {output, 0} ->
+            {:ok, output}
 
-        {:error, response}
+          {error, _} ->
+            {:error, String.trim(error)}
+        end
+      rescue
+        e in ErlangError ->
+          case e do
+            %ErlangError{original: :enoent} ->
+              raise "Failed to execute exiftool: binary not found or not executable. Please make sure it's in PATH or is defined with an absolute filename."
 
-      {_, _} ->
-        raise("Command \"#{exiftool_binary}\" failed")
+            _ ->
+              {:error, "Unexpected error: #{inspect(e)}"}
+          end
+      end
     end
   end
 
@@ -42,12 +43,13 @@ defmodule Photor.Metadata.Exiftool do
   end
 
   defp parse_json(response) when is_binary(response) do
-    with {:ok, val} <- Jason.decode(response),
-         [%{} = map] <- val do
-      {:ok, map}
+    case Jason.decode(response) do
+      {:ok, [%{} = map]} -> {:ok, map}
+      {:ok, _} -> {:error, "Invalid JSON format"}
+      {:error, error} -> {:error, error}
     end
   end
 
-  defp and_then({:ok, previous_result}, fun), do: fun.(previous_result)
+  defp and_then({:ok, previous_result}, fun) when is_function(fun, 1), do: fun.(previous_result)
   defp and_then({:error, _reason} = e, _fun), do: e
 end

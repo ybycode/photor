@@ -1,21 +1,28 @@
 defmodule Photor.MetadataTest do
   use ExUnit.Case
+  import Mox
+  import Photor.MetadataHelpers
+
+  # Set up mocks to be verified when the test exits
+  setup :verify_on_exit!
 
   alias Photor.Metadata
   alias Photor.Metadata.MainMetadata
-
-  @ricoh_raw "test/assets/Ricoh_GRIIIx.DNG"
-  @ricoh_jpg "test/assets/Ricoh_GRIIIx.JPG"
-
-  # TODO: replace with dummy photos
-  @fujix_raw "test/assets/DSCF7066.RAF"
-  @fujix_jpg "test/assets/DSCF7066.JPG"
+  alias Photor.Metadata.MockExiftool
 
   describe "read/1" do
-    test "works with Ricoh GRIIIx images" do
-      assert {:ok, exif} = Metadata.read(@ricoh_jpg)
+    test "works with Ricoh GRIIIx JPG" do
+      {:ok, json_data} = load_metadata_json("Ricoh_GRIIIxHDF_jpg.json")
 
-      jpg_exif = %MainMetadata{
+      # Mock the Exiftool response for Ricoh JPG
+      MockExiftool
+      |> expect(:read_as_json, fn _path ->
+        {:ok, json_data}
+      end)
+
+      assert {:ok, exif} = Metadata.read("dummy_ricoh.jpg")
+
+      expected_exif = %MainMetadata{
         aperture: 2.8,
         create_date: "2025-05-02 20:29:52",
         date_time_original: "2025-05-02 20:29:52",
@@ -32,50 +39,74 @@ defmodule Photor.MetadataTest do
         shutter_speed: "1/60"
       }
 
-      assert exif == jpg_exif
-
-      raw_exif = %{
-        jpg_exif
-        | mime_type: "image/x-adobe-dng",
-          image_height: 4064,
-          image_width: 6112
-      }
-
-      assert {:ok, %MainMetadata{} = exif} = Metadata.read(@ricoh_raw)
-      assert exif == raw_exif
+      assert exif == expected_exif
     end
 
-    test "works with Fuji X images" do
-      assert {:ok, exif} = Metadata.read(@fujix_jpg)
+    test "works with Ricoh GRIIIx RAW" do
+      {:ok, json_data} = load_metadata_json("Ricoh_GRIIIxHDF_dng.json")
 
-      jpg_exif = %MainMetadata{
-        aperture: 6.4,
-        create_date: "2025-04-20 13:19:24",
-        date_time_original: "2025-04-20 13:19:24",
-        focal_length: "75.0 mm",
-        image_height: 5152,
-        image_width: 7728,
-        iso: 160,
-        lens_info: "75mm f/1.2",
-        lens_make: "Viltrox ",
-        lens_model: "AF 75/1.2 XF   ",
-        make: "FUJIFILM",
-        mime_type: "image/jpeg",
-        model: "X-T5",
-        shutter_speed: "1/80"
+      # Mock the Exiftool response for Ricoh RAW
+      MockExiftool
+      |> expect(:read_as_json, fn _path ->
+        {:ok, json_data}
+      end)
+
+      assert {:ok, exif} = Metadata.read("dummy_ricoh.dng")
+
+      expected_exif = %MainMetadata{
+        aperture: 2.8,
+        create_date: "2025-05-02 20:29:52",
+        date_time_original: "2025-05-02 20:29:52",
+        focal_length: "26.0 mm",
+        image_height: 4064,
+        image_width: 6112,
+        iso: 2500,
+        lens_info: "26.1mm F2.8",
+        lens_make: nil,
+        lens_model: nil,
+        make: "RICOH IMAGING COMPANY, LTD.",
+        mime_type: "image/x-adobe-dng",
+        model: "RICOH GR IIIx HDF",
+        shutter_speed: "1/60"
       }
 
-      assert exif == jpg_exif
+      assert exif == expected_exif
+    end
 
-      raw_exif = %{
-        jpg_exif
-        | mime_type: "image/x-fujifilm-raf",
-          image_height: 2944,
-          image_width: 4416
+    test "handles file not found errors" do
+      MockExiftool
+      |> expect(:read_as_json, fn _path ->
+        {:error, :file_not_found}
+      end)
+
+      assert {:error, "File not found: non_existent.jpg"} = Metadata.read("non_existent.jpg")
+    end
+
+    test "handles exiftool errors" do
+      MockExiftool
+      |> expect(:read_as_json, fn _path ->
+        {:error, "Some exiftool error"}
+      end)
+
+      assert {:error, "Failed to read metadata: \"Some exiftool error\""} =
+               Metadata.read("dummy.jpg")
+    end
+
+    test "handles shutter speed decoding errors" do
+      # Create a custom JSON with invalid shutter speed
+      invalid_json = %{
+        "ShutterSpeed" => %{"invalid" => "format"},
+        "MIMEType" => "image/jpeg"
       }
 
-      assert {:ok, %MainMetadata{} = exif} = Metadata.read(@fujix_raw)
-      assert exif == raw_exif
+      MockExiftool
+      |> expect(:read_as_json, fn _path ->
+        {:ok, invalid_json}
+      end)
+
+      assert {:error,
+              "Failed to process shutter speed: Expected a string or a number for shutter speed"} =
+               Metadata.read("dummy.jpg")
     end
   end
 end
