@@ -7,8 +7,10 @@ defmodule Photor.Photos.Photo do
     field :filename, :string
     field :directory, :string
 
-    field :full_sha256_hash, :string
     field :file_size_bytes, :integer
+    field :partial_sha256_hash, :string
+    field :full_sha256_hash, :string
+
     field :image_height, :integer
     field :image_width, :integer
     field :mime_type, :string
@@ -23,7 +25,6 @@ defmodule Photor.Photos.Photo do
     field :lens_model, :string
     field :create_date, :naive_datetime
     field :create_day, :date
-    field :partial_sha256_hash, :string
   end
 
   def query_unique_create_day() do
