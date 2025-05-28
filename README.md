@@ -1,13 +1,15 @@
 # photor (Photos Repository)
 
-Photor is an application made to manage large collections of photos (terabytes).
+Photor is an application made to manage a large repository of photos ( > 1TB or more).
 
-Features (most aren't yet available):
+The "repository" is simply a collection of all photos, in directories named after the "create date" metadata of the photos, plus a db.sqlite file that stores metadata of each photo.
+
+## Features (most aren't yet available):
 
 - imports:
 
     - copy not yet already imported photos and videos into the repository,
-    - extract metadata, save it to a database,
+    - extract metadata, save it to the database,
     - generate thumbnails.
 
 - Viewing:

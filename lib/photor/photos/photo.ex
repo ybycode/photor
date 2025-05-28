@@ -1,7 +1,9 @@
 defmodule Photor.Photos.Photo do
   use Ecto.Schema
-
+  import Ecto.Changeset
   import Ecto.Query
+
+  alias Photor.Metadata.MainMetadata
 
   schema "photos" do
     field :filename, :string
@@ -25,6 +27,88 @@ defmodule Photor.Photos.Photo do
     field :lens_model, :string
     field :create_date, :naive_datetime
     field :create_day, :date
+
+    timestamps(updated_at: false)
+  end
+
+  @doc """
+  Creates a changeset for a photo.
+  """
+  def changeset(photo, attrs) do
+    photo
+    |> cast(attrs, [
+      :filename,
+      :directory,
+      :partial_sha256_hash,
+      :full_sha256_hash,
+      :file_size_bytes,
+      :image_height,
+      :image_width,
+      :mime_type,
+      :iso,
+      :aperture,
+      :shutter_speed,
+      :focal_length,
+      :make,
+      :model,
+      :lens_info,
+      :lens_make,
+      :lens_model,
+      :create_date,
+      :create_day
+    ])
+    |> validate_required([
+      :filename,
+      :directory,
+      :partial_sha256_hash,
+      :file_size_bytes
+    ])
+  end
+
+  @doc """
+  Creates a Photo struct from a MainMetadata struct and additional file information.
+
+  ## Parameters
+
+  - metadata: A MainMetadata struct containing the photo's metadata
+  - filename: The filename of the photo
+  - directory: The directory where the photo will be stored
+  - partial_hash: The partial SHA256 hash of the photo
+  - file_size: The size of the photo in bytes
+
+  ## Returns
+
+  A Photo struct with fields populated from the metadata and file information.
+  """
+  def from_metadata(
+        %MainMetadata{} = metadata,
+        filename,
+        directory,
+        partial_hash,
+        file_size
+      ) do
+    create_date = metadata.create_date || metadata.date_time_original
+
+    %__MODULE__{
+      filename: filename,
+      directory: directory,
+      partial_sha256_hash: partial_hash,
+      # full_sha256_hash: full_hash,
+      file_size_bytes: file_size,
+      image_height: metadata.image_height,
+      image_width: metadata.image_width,
+      mime_type: metadata.mime_type,
+      iso: metadata.iso,
+      aperture: metadata.aperture,
+      shutter_speed: metadata.shutter_speed,
+      focal_length: metadata.focal_length,
+      make: metadata.make,
+      model: metadata.model,
+      lens_info: metadata.lens_info,
+      lens_make: metadata.lens_make,
+      lens_model: metadata.lens_model,
+      create_date: create_date,
+    }
   end
 
   def query_unique_create_day() do

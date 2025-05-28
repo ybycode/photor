@@ -8,6 +8,7 @@ mkShell {
     elixir_1_18
     elixir-ls
     inotify-tools
+    rebar3
     sqlite
 
     # runtime dependency of the app:
