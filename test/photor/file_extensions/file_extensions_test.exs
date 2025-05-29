@@ -22,5 +22,10 @@ defmodule Photor.FileExtensionsTest do
         assert FileExtensions.extension_info(extension) == expected_result
       end)
     end
+
+    test "returns :unknown for unknown extensions" do
+      assert FileExtensions.extension_info("xyz") == :unknown
+      assert FileExtensions.extension_info("") == :unknown
+    end
   end
 end

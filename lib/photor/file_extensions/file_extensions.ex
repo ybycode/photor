@@ -1,8 +1,10 @@
 defmodule Photor.FileExtensions do
   @doc """
-  Given a file extension, returns a 2-tuple `{a, b}` where:
+  Given a file extension string, returns a 2-tuple `{a, b}` where:
   - `a` is either `:photo` or `:video`,
   - `b` is either `:compressed` or `:raw`.
+
+  Returns `:unknown` for unknown extensions.
   """
   def extension_info(ext)
 
@@ -23,4 +25,7 @@ defmodule Photor.FileExtensions do
       {unquote(medium), unquote(type)}
     end
   end
+
+  # Add a default clause for unknown extensions
+  def extension_info(_ext), do: :unknown
 end
