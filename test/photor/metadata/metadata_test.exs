@@ -3,6 +3,7 @@ defmodule Photor.MetadataTest do
   import Mox
   import Photor.MetadataHelpers
 
+
   # Set up mocks to be verified when the test exits
   setup :verify_on_exit!
 
@@ -24,8 +25,8 @@ defmodule Photor.MetadataTest do
 
       expected_exif = %MainMetadata{
         aperture: 2.8,
-        create_date: "2025-05-02 20:29:52",
-        date_time_original: "2025-05-02 20:29:52",
+        create_date: NaiveDateTime.from_iso8601!("2025-05-02 20:29:52"),
+        date_time_original: NaiveDateTime.from_iso8601!("2025-05-02 20:29:52"),
         focal_length: "26.0 mm",
         image_height: 1280,
         image_width: 1920,
@@ -55,8 +56,8 @@ defmodule Photor.MetadataTest do
 
       expected_exif = %MainMetadata{
         aperture: 2.8,
-        create_date: "2025-05-02 20:29:52",
-        date_time_original: "2025-05-02 20:29:52",
+        create_date: NaiveDateTime.from_iso8601!("2025-05-02 20:29:52"),
+        date_time_original: NaiveDateTime.from_iso8601!("2025-05-02 20:29:52"),
         focal_length: "26.0 mm",
         image_height: 4064,
         image_width: 6112,

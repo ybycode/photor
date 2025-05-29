@@ -25,8 +25,8 @@ defmodule Photor.Metadata do
            map_key(exif_data, "ShutterSpeed", &ShutterSpeedDecoder.decode/1) do
       {:ok,
        %MainMetadata{
-         date_time_original: map_key(exif_data, "DateTimeOriginal"),
-         create_date: map_key(exif_data, "CreateDate"),
+         date_time_original: parse_datetime(map_key(exif_data, "DateTimeOriginal")),
+         create_date: parse_datetime(map_key(exif_data, "CreateDate")),
          image_height: map_key(exif_data, "ImageHeight", &parse_int/1),
          image_width: map_key(exif_data, "ImageWidth", &parse_int/1),
          mime_type: map_key(exif_data, "MIMEType"),
@@ -57,4 +57,18 @@ defmodule Photor.Metadata do
   defp parse_float(val) when is_binary(val), do: String.to_float(val)
   defp parse_float(val) when is_number(val), do: val
   defp parse_float(_), do: nil
+
+  defp parse_datetime(nil), do: nil
+  defp parse_datetime(datetime_str) when is_binary(datetime_str) do
+    case NaiveDateTime.from_iso8601(datetime_str) do
+      {:ok, datetime} -> datetime
+      _ ->
+        # Try with a space instead of T
+        case NaiveDateTime.from_iso8601(String.replace(datetime_str, " ", "T")) do
+          {:ok, datetime} -> datetime
+          _ -> nil
+        end
+    end
+  end
+  defp parse_datetime(_), do: nil
 end

@@ -88,6 +88,8 @@ defmodule Photor.Photos.Photo do
         file_size
       ) do
     create_date = metadata.create_date || metadata.date_time_original
+    # until now create_day was populated by a sqlite trigger, but I believe it came with a high performance cost. So let's do as you suggest and define it here. However we now need a migration to get rid of the existing trigger, AI
+    create_day = if create_date, do: NaiveDateTime.to_date(create_date), else: nil
 
     %__MODULE__{
       filename: filename,
@@ -108,6 +110,7 @@ defmodule Photor.Photos.Photo do
       lens_make: metadata.lens_make,
       lens_model: metadata.lens_model,
       create_date: create_date,
+      create_day: create_day
     }
   end
 
