@@ -1,47 +1,38 @@
-defmodule Photor.Files.ImporterTest do
+defmodule Photor.Imports.ImporterTest do
   use Photor.DataCase
   import Mox
 
-  alias Photor.Files.Importer
+  alias Photor.Imports.Importer
+  # alias Photor.Metadata.MainMetadata
   alias Photor.Metadata.MockExiftool
   alias Photor.Photos.Photo
   alias Photor.Repo
 
+  import Photor.Factory
+
   setup :verify_on_exit!
 
-  @temp_dir "tmp/test_repo"
-  @source_dir "tmp/test_source"
+  @photor_dir Application.compile_env!(:photor, :photor_dir)
+  @source_dir "test/tmp/"
 
   setup do
     # Create temp directories for tests
-    File.mkdir_p!(@temp_dir)
     File.mkdir_p!(@source_dir)
 
     on_exit(fn ->
-      File.rm_rf!(@temp_dir)
       File.rm_rf!(@source_dir)
+
+      [
+        "1970-01-01",
+        "2023-06-15"
+      ]
+      |> Enum.each(fn date ->
+        Path.join(@photor_dir, date)
+        |> File.rm_rf!()
+      end)
     end)
 
     :ok
-  end
-
-  describe "get_destination_dir/2" do
-    alias Photor.Metadata.MainMetadata
-
-    test "uses create_date when available" do
-      metadata = %MainMetadata{
-        create_date: ~N[2023-05-15 10:30:00]
-      }
-
-      dest_dir = Importer.get_destination_dir(metadata, @temp_dir)
-      assert Path.basename(dest_dir) == "2023-05-15"
-    end
-
-    test "falls back to epoch date when no date available" do
-      metadata = %MainMetadata{}
-      dest_dir = Importer.get_destination_dir(metadata, @temp_dir)
-      assert Path.basename(dest_dir) == "1970-01-01"
-    end
   end
 
   describe "generate_filename/2" do
@@ -73,7 +64,8 @@ defmodule Photor.Files.ImporterTest do
       end)
 
       # Run the import
-      result = Importer.import_file(test_file, @temp_dir)
+      import = insert(:import)
+      result = Importer.import_file(import, @photor_dir, test_file)
 
       # Verify results
       assert {:ok, destination_path} = result
@@ -81,12 +73,47 @@ defmodule Photor.Files.ImporterTest do
       assert String.contains?(destination_path, "2023-06-15")
 
       # Verify the file was copied with the correct name format
-      assert Path.basename(destination_path) =~ ~r/^[a-f0-9]+_test_photo\.jpg$/
+      assert Path.basename(destination_path) =~ ~r/^[a-z0-9]+_test_photo\.jpg$/
 
       # Verify a database record was created
       photo = Repo.get_by(Photo, filename: Path.basename(destination_path))
       assert photo != nil
       assert photo.directory == "2023-06-15"
+    end
+
+    test "uses 1970-01-01 if not date found in the file" do
+      # Create a test file
+      test_file = Path.join(@source_dir, "test_photo.jpg")
+      File.write!(test_file, "test file content")
+
+      # Mock the metadata read
+      MockExiftool
+      |> expect(:read_as_json, fn _path ->
+        {:ok,
+         %{
+           # "CreateDate" => "2023-06-15 10:30:00", # no date in metadata
+           "MIMEType" => "image/jpeg",
+           "ImageHeight" => 1080,
+           "ImageWidth" => 1920
+         }}
+      end)
+
+      # Run the import
+      import = insert(:import)
+      result = Importer.import_file(import, @photor_dir, test_file)
+
+      # Verify results
+      assert {:ok, destination_path} = result
+      assert File.exists?(destination_path)
+      assert String.contains?(destination_path, "1970-01-01")
+
+      # Verify the file was copied with the correct name format
+      assert Path.basename(destination_path) =~ ~r/^[a-z0-9]+_test_photo\.jpg$/
+
+      # Verify a database record was created
+      photo = Repo.get_by(Photo, filename: Path.basename(destination_path))
+      assert photo != nil
+      assert photo.directory == "1970-01-01"
     end
 
     test "returns :already_exists when file already in database" do
@@ -104,7 +131,8 @@ defmodule Photor.Files.ImporterTest do
          }}
       end)
 
-      {:ok, _} = Importer.import_file(test_file, @temp_dir)
+      import = insert(:import)
+      {:ok, _} = Importer.import_file(import, @photor_dir, test_file)
 
       # Now try to import it again - should detect as already existing
       MockExiftool
@@ -116,7 +144,8 @@ defmodule Photor.Files.ImporterTest do
          }}
       end)
 
-      result = Importer.import_file(test_file, @temp_dir)
+      import = insert(:import)
+      result = Importer.import_file(import, @photor_dir, test_file)
       assert {:ok, :already_exists} = result
     end
 
@@ -132,7 +161,8 @@ defmodule Photor.Files.ImporterTest do
       end)
 
       # Run the import
-      result = Importer.import_file(test_file, @temp_dir)
+      import = insert(:import)
+      result = Importer.import_file(import, @photor_dir, test_file)
 
       # Verify it returns an error
       assert {:error, _} = result
@@ -167,7 +197,8 @@ defmodule Photor.Files.ImporterTest do
       end)
 
       # Run the directory import
-      result = Importer.import_directory(@source_dir, @temp_dir)
+      import = insert(:import)
+      result = Importer.import_directory(import, @source_dir)
 
       # Verify results
       assert {:ok, results} = result
@@ -177,7 +208,7 @@ defmodule Photor.Files.ImporterTest do
       assert Enum.all?(results, fn r -> match?({:ok, _}, r) end)
 
       # Check that files were copied to the repository
-      assert File.exists?(Path.join([@temp_dir, "2023-06-15"]))
+      assert File.exists?(Path.join([@photor_dir, "2023-06-15"]))
 
       # Check that database records were created
       photo_count = Repo.aggregate(Photo, :count)
@@ -186,7 +217,8 @@ defmodule Photor.Files.ImporterTest do
 
     test "handles directory not found error" do
       # Try to import from a non-existent directory
-      result = Importer.import_directory("/nonexistent/dir", @temp_dir)
+      import = insert(:import)
+      result = Importer.import_directory(import, "/nonexistent/dir")
 
       # Verify it returns an error
       assert {:error, _} = result
@@ -212,7 +244,8 @@ defmodule Photor.Files.ImporterTest do
          }}
       end)
 
-      {:ok, _} = Importer.import_directory(@source_dir, @temp_dir)
+      import = insert(:import)
+      {:ok, _} = Importer.import_directory(import, @source_dir)
 
       # Add a new file
       file3 = Path.join(@source_dir, "photo3.jpg")
@@ -231,7 +264,8 @@ defmodule Photor.Files.ImporterTest do
          }}
       end)
 
-      {:ok, results} = Importer.import_directory(@source_dir, @temp_dir)
+      import = insert(:import)
+      {:ok, results} = Importer.import_directory(import, @source_dir)
 
       # Two should be already_exists, one should be a new import
       already_exists = Enum.count(results, fn r -> r == {:ok, :already_exists} end)

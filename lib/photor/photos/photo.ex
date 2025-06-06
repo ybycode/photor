@@ -28,6 +28,8 @@ defmodule Photor.Photos.Photo do
     field :create_date, :naive_datetime
     field :create_day, :date
 
+    belongs_to :import, Photor.Imports.Import
+
     timestamps(updated_at: false)
   end
 
@@ -37,6 +39,7 @@ defmodule Photor.Photos.Photo do
   def changeset(photo, attrs) do
     photo
     |> cast(attrs, [
+      :import_id,
       :filename,
       :directory,
       :partial_sha256_hash,
@@ -63,6 +66,7 @@ defmodule Photor.Photos.Photo do
       :partial_sha256_hash,
       :file_size_bytes
     ])
+    |> assoc_constraint(:import)
   end
 
   @doc """
@@ -81,17 +85,18 @@ defmodule Photor.Photos.Photo do
   A Photo struct with fields populated from the metadata and file information.
   """
   def from_metadata(
+        import_id,
         %MainMetadata{} = metadata,
         filename,
         directory,
         partial_hash,
         file_size
       ) do
-    create_date = metadata.create_date || metadata.date_time_original
-    # until now create_day was populated by a sqlite trigger, but I believe it came with a high performance cost. So let's do as you suggest and define it here. However we now need a migration to get rid of the existing trigger, AI
-    create_day = if create_date, do: NaiveDateTime.to_date(create_date), else: nil
+    create_day =
+      if metadata.create_date, do: NaiveDateTime.to_date(metadata.create_date), else: nil
 
     %__MODULE__{
+      import_id: import_id,
       filename: filename,
       directory: directory,
       partial_sha256_hash: partial_hash,
@@ -109,7 +114,7 @@ defmodule Photor.Photos.Photo do
       lens_info: metadata.lens_info,
       lens_make: metadata.lens_make,
       lens_model: metadata.lens_model,
-      create_date: create_date,
+      create_date: metadata.create_date,
       create_day: create_day
     }
   end

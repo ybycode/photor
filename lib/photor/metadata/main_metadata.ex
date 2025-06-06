@@ -5,7 +5,6 @@ defmodule Photor.Metadata.MainMetadata do
   """
 
   defstruct [
-    :date_time_original,
     :create_date,
     :image_height,
     :image_width,

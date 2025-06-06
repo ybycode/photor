@@ -5,6 +5,8 @@ defmodule Photor.Photos.PhotoOperationsTest do
   alias Photor.Photos.PhotoOperations
   alias Photor.Metadata.MainMetadata
 
+  import Photor.Factory
+
   describe "insert_from_metadata/6" do
     test "creates and inserts a photo from metadata" do
       metadata = %MainMetadata{
@@ -28,9 +30,17 @@ defmodule Photor.Photos.PhotoOperationsTest do
       partial_hash = "partial123"
       file_size = 2048
 
-      assert {:ok, photo} = PhotoOperations.insert_from_metadata(
-        metadata, filename, directory, partial_hash, file_size
-      )
+      import = insert(:import)
+
+      assert {:ok, photo} =
+               PhotoOperations.insert_from_metadata(
+                 import,
+                 metadata,
+                 filename,
+                 directory,
+                 partial_hash,
+                 file_size
+               )
 
       assert photo.filename == filename
       assert photo.directory == directory
@@ -62,9 +72,17 @@ defmodule Photor.Photos.PhotoOperationsTest do
       partial_hash = "partial123"
       file_size = 2048
 
-      assert {:error, changeset} = PhotoOperations.insert_from_metadata(
-        metadata, filename, directory, partial_hash, file_size
-      )
+      import = insert(:import)
+
+      assert {:error, changeset} =
+               PhotoOperations.insert_from_metadata(
+                 import,
+                 metadata,
+                 filename,
+                 directory,
+                 partial_hash,
+                 file_size
+               )
 
       assert %{directory: ["can't be blank"]} = errors_on(changeset)
     end
@@ -78,7 +96,7 @@ defmodule Photor.Photos.PhotoOperationsTest do
         directory: "2023-01-01",
         partial_sha256_hash: "unique123",
         file_size_bytes: 1024,
-        create_date: ~N[2023-01-01 12:00:00],
+        create_date: ~N[2023-01-01 12:00:00]
       }
       |> Repo.insert!()
 

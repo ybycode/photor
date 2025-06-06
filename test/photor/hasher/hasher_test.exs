@@ -8,27 +8,27 @@ defmodule Photor.HasherTest do
 
   describe "hash_file_first_bytes/2" do
     test "test whole file (nbytes = 1024)" do
-      expected = "ded8e6059fb2049d4f2044cfc99e47d06f4de4913c4dfc8728dea151345a0cda"
+      expected = "33mombm7wicj2tzaith4thsh2bxu3zerhrg7zbzi32qvcnc2btna"
       assert {:ok, ^expected} = Hasher.hash_file_first_bytes(@file_1024_bytes, 1024)
     end
 
     test "test more bytes (nbytes = 2048)" do
-      expected = "ded8e6059fb2049d4f2044cfc99e47d06f4de4913c4dfc8728dea151345a0cda"
+      expected = "33mombm7wicj2tzaith4thsh2bxu3zerhrg7zbzi32qvcnc2btna"
       assert {:ok, ^expected} = Hasher.hash_file_first_bytes(@file_1024_bytes, 2048)
     end
 
     test "test first byte (nbytes = 1)" do
-      expected = "1630f784f0dfddd2e31752bab489f7f4a909bb2281027930b0384040ba304b47"
+      expected = "cyyppbhq37o5fyyxkk5ljcpx6suqtozcqebhsmfqhbaeborqjndq"
       assert {:ok, ^expected} = Hasher.hash_file_first_bytes(@file_1024_bytes, 1)
     end
 
     test "test no bytes (nbytes = 0)" do
-      expected = "e39eef82f61b21e2e7f762fcc4307358f165757f2e77ec855d6992f7e0191932"
+      expected = "4opo7axwdmq6fz7xml6mimdtldywk5l7fz36zbk5ngjppyazdeza"
       assert {:ok, ^expected} = Hasher.hash_file_first_bytes(@file_1024_bytes, 0)
     end
 
     test "test empty file" do
-      expected = "5feceb66ffc86f38d952786c6d696c79c2dbc239dd4e91b46729d73a27fb57e9"
+      expected = "l7wowzx7zbxtrwkspbwg22lmphbnxqrz3vhjdndhfhltuj73k7uq"
       assert {:ok, ^expected} = Hasher.hash_file_first_bytes(@file_empty, 1024)
       assert {:ok, ^expected} = Hasher.hash_file_first_bytes(@file_empty, 0)
     end

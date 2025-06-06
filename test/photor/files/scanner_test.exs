@@ -2,6 +2,7 @@ defmodule Photor.Files.ScannerTest do
   use ExUnit.Case
 
   alias Photor.Files.Scanner
+  alias Photor.Files.File, as: File_
 
   # Create a temporary directory structure for testing
   setup do
@@ -30,7 +31,7 @@ defmodule Photor.Files.ScannerTest do
 
   describe "scan_directory/2" do
     test "finds all media files recursively", %{tmp_dir: tmp_dir} do
-      {:ok, files} = Scanner.scan_directory(tmp_dir)
+      {:ok, [file1 | _rest] = files} = Scanner.scan_directory(tmp_dir)
 
       # Should find 5 media files (3 photos, 1 raw, 1 video)
       assert length(files) == 5
@@ -39,7 +40,8 @@ defmodule Photor.Files.ScannerTest do
       photo_files = Enum.filter(files, fn %{type: type} -> type.medium == :photo end)
       video_files = Enum.filter(files, fn %{type: type} -> type.medium == :video end)
 
-      assert length(photo_files) == 4  # 3 jpg/jpeg + 1 raw
+      # 3 jpg/jpeg + 1 raw
+      assert length(photo_files) == 4
       assert length(video_files) == 1
 
       # Verify file extensions
@@ -49,6 +51,13 @@ defmodule Photor.Files.ScannerTest do
       assert "jpeg" in extensions
       assert "dng" in extensions
       assert "mp4" in extensions
+
+      assert %File_{
+               path: _,
+               type: %{type: :compressed, extension: "JPG", medium: :photo},
+               bytesize: 4,
+               access: :read_write
+             } = file1
     end
 
     test "finds files in current directory only when recursive is false", %{tmp_dir: tmp_dir} do
@@ -68,6 +77,7 @@ defmodule Photor.Files.ScannerTest do
       {:ok, files} = Scanner.scan_directory(tmp_dir, types: [{:photo, :compressed}])
 
       assert length(files) == 3
+
       Enum.each(files, fn %{type: type} ->
         assert type.medium == :photo
         assert type.type == :compressed

@@ -44,3 +44,4 @@ priv/static
 result
 .env
 TODO.md
+test/photos_repo

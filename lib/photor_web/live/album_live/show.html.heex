@@ -1,11 +1,15 @@
 <.flash_group flash={@flash} />
 
-
 <.link patch={~p"/albums/"}>Back to index</.link>
 
 <div class="image-gallery">
   <%= if(not is_nil(@previewed_photo_index)) do %>
-    <div class="overlay" phx-click="hide-preview" id="gallery-overlay" phx-hook="PreviewKeyboardNavigation">
+    <div
+      class="overlay"
+      phx-click="hide-preview"
+      id="gallery-overlay"
+      phx-hook="PreviewKeyboardNavigation"
+    >
       <img src={photo_url_preview(@photos, @previewed_photo_index)} />
     </div>
   <% end %>

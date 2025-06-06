@@ -1,4 +1,8 @@
 defmodule Photor.Files.Scanner do
+  require Logger
+
+  alias Photor.Files.File, as: File_
+
   @moduledoc """
   Provides functionality to scan directories for photo and video files.
   """
@@ -36,27 +40,26 @@ defmodule Photor.Files.Scanner do
       |> File.ls!()
       |> Enum.map(fn entry -> Path.join(directory, entry) end)
       |> Enum.flat_map(fn path ->
-        cond do
-          # If it's a directory and we're scanning recursively, scan it
-          File.dir?(path) and recursive ->
+        case File.stat(path) do
+          {:ok, %File.Stat{type: :directory}} when recursive ->
             do_scan_directory(path, recursive, types)
 
-          # If it's a file, check if it's a media file we're interested in
-          File.regular?(path) ->
+          {:ok, %File.Stat{type: :regular} = stat} ->
             case get_file_type(path, types) do
-              nil -> []
-              type -> [%{path: path, type: type}]
+              nil ->
+                []
+
+              type ->
+                [%File_{path: path, type: type, bytesize: stat.size, access: stat.access}]
             end
 
-          # Otherwise, skip it
-          true ->
+          _ ->
             []
         end
       end)
     rescue
       e in File.Error ->
         # Log the error but continue with an empty list
-        require Logger
         Logger.error("Error scanning directory #{directory}: #{inspect(e)}")
         []
     end
@@ -76,7 +79,8 @@ defmodule Photor.Files.Scanner do
         end
 
       # If extension_info doesn't match, it returns a function
-      _other -> nil
+      _other ->
+        nil
     end
   end
 end

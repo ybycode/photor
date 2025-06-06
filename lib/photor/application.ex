@@ -11,12 +11,11 @@ defmodule Photor.Application do
       PhotorWeb.Telemetry,
       Photor.Repo,
       {Ecto.Migrator,
-        repos: Application.fetch_env!(:photor, :ecto_repos),
-        skip: skip_migrations?()},
+       repos: Application.fetch_env!(:photor, :ecto_repos), skip: skip_migrations?()},
       {DNSCluster, query: Application.get_env(:photor, :dns_cluster_query) || :ignore},
       {Phoenix.PubSub, name: Photor.PubSub},
-      # Start a worker by calling: Photor.Worker.start_link(arg)
-      # {Photor.Worker, arg},
+      # Start the ImportTracker GenServer
+      {Photor.Imports.ImportTracker, []},
       # Start to serve requests, typically the last entry
       PhotorWeb.Endpoint
     ]

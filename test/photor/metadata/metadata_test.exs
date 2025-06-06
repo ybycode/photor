@@ -3,7 +3,6 @@ defmodule Photor.MetadataTest do
   import Mox
   import Photor.MetadataHelpers
 
-
   # Set up mocks to be verified when the test exits
   setup :verify_on_exit!
 
@@ -26,7 +25,6 @@ defmodule Photor.MetadataTest do
       expected_exif = %MainMetadata{
         aperture: 2.8,
         create_date: NaiveDateTime.from_iso8601!("2025-05-02 20:29:52"),
-        date_time_original: NaiveDateTime.from_iso8601!("2025-05-02 20:29:52"),
         focal_length: "26.0 mm",
         image_height: 1280,
         image_width: 1920,
@@ -57,7 +55,6 @@ defmodule Photor.MetadataTest do
       expected_exif = %MainMetadata{
         aperture: 2.8,
         create_date: NaiveDateTime.from_iso8601!("2025-05-02 20:29:52"),
-        date_time_original: NaiveDateTime.from_iso8601!("2025-05-02 20:29:52"),
         focal_length: "26.0 mm",
         image_height: 4064,
         image_width: 6112,
@@ -91,6 +88,37 @@ defmodule Photor.MetadataTest do
 
       assert {:error, "Failed to read metadata: \"Some exiftool error\""} =
                Metadata.read("dummy.jpg")
+    end
+
+    test "defaults to 1970-01-01 when no date found" do
+      json = %{}
+
+      MockExiftool
+      |> expect(:read_as_json, fn _path ->
+        {:ok, json}
+      end)
+
+      assert {:ok, exif} = Metadata.read("dummy_ricoh.dng")
+      assert exif.create_date == ~N[1970-01-01 00:00:00]
+    end
+
+    test "Considers DateTimeOriginal and CreateDate in this order" do
+      [
+        %{
+          "DateTimeOriginal" => "1999-01-01 00:00:00",
+          "CreateDate" => "2000-01-01 00:00:00"
+        },
+        %{"CreateDate" => "1999-01-01 00:00:00"}
+      ]
+      |> Enum.each(fn json ->
+        MockExiftool
+        |> expect(:read_as_json, 1, fn _path ->
+          {:ok, json}
+        end)
+
+        assert {:ok, exif} = Metadata.read("dummy_ricoh.dng")
+        assert exif.create_date == ~N[1999-01-01 00:00:00]
+      end)
     end
 
     test "handles shutter speed decoding errors" do

@@ -27,7 +27,7 @@ defmodule Photor.Hasher do
         |> :crypto.hash_update(binary)
         |> :crypto.hash_final()
 
-      {:ok, Base.encode16(digest, case: :lower)}
+      {:ok, Base.encode32(digest, case: :lower, padding: false)}
     else
       {:error, reason} ->
         {:error, "Failed to process file: #{format_file_error(reason)}"}

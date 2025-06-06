@@ -3,6 +3,7 @@ defmodule Photor.Metadata do
   alias Photor.Metadata.ShutterSpeedDecoder
 
   @exiftool_module Application.compile_env(:photor, :exiftool_module, Photor.Metadata.Exiftool)
+  @fallback_creation_date "1970-01-01 00:00:00"
 
   @doc """
   Reads metadata from a photo file and returns a structured MainMetadata struct.
@@ -25,8 +26,13 @@ defmodule Photor.Metadata do
            map_key(exif_data, "ShutterSpeed", &ShutterSpeedDecoder.decode/1) do
       {:ok,
        %MainMetadata{
-         date_time_original: parse_datetime(map_key(exif_data, "DateTimeOriginal")),
-         create_date: parse_datetime(map_key(exif_data, "CreateDate")),
+         create_date:
+           parse_datetime(
+             # 2 fields from the metadata are considered:
+             map_key(exif_data, "DateTimeOriginal") ||
+               map_key(exif_data, "CreateDate") ||
+               @fallback_creation_date
+           ),
          image_height: map_key(exif_data, "ImageHeight", &parse_int/1),
          image_width: map_key(exif_data, "ImageWidth", &parse_int/1),
          mime_type: map_key(exif_data, "MIMEType"),
@@ -59,9 +65,12 @@ defmodule Photor.Metadata do
   defp parse_float(_), do: nil
 
   defp parse_datetime(nil), do: nil
+
   defp parse_datetime(datetime_str) when is_binary(datetime_str) do
     case NaiveDateTime.from_iso8601(datetime_str) do
-      {:ok, datetime} -> datetime
+      {:ok, datetime} ->
+        datetime
+
       _ ->
         # Try with a space instead of T
         case NaiveDateTime.from_iso8601(String.replace(datetime_str, " ", "T")) do
@@ -70,5 +79,6 @@ defmodule Photor.Metadata do
         end
     end
   end
+
   defp parse_datetime(_), do: nil
 end

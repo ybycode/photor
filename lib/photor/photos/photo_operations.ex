@@ -4,9 +4,11 @@ defmodule Photor.Photos.PhotoOperations do
   """
 
   import Ecto.Query
-  alias Photor.Repo
-  alias Photor.Photos.Photo
+
+  alias Photor.Imports.Import
   alias Photor.Metadata.MainMetadata
+  alias Photor.Photos.Photo
+  alias Photor.Repo
 
   @doc """
   Creates a Photo struct from metadata and file information and inserts it into the database.
@@ -24,8 +26,16 @@ defmodule Photor.Photos.PhotoOperations do
   `{:ok, photo}` if the photo was inserted successfully.
   `{:error, changeset}` if there was an error.
   """
-  def insert_from_metadata(%MainMetadata{} = metadata, filename, directory, partial_hash, file_size) do
-    photo = Photo.from_metadata(metadata, filename, directory, partial_hash, file_size)
+  def insert_from_metadata(
+        %Import{id: import_id},
+        %MainMetadata{} = metadata,
+        filename,
+        directory,
+        partial_hash,
+        file_size
+      ) do
+    photo = Photo.from_metadata(import_id, metadata, filename, directory, partial_hash, file_size)
+
     %Photo{}
     |> Photo.changeset(Map.from_struct(photo))
     |> Repo.insert()
