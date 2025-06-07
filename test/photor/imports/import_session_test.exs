@@ -16,10 +16,6 @@ defmodule Photor.Imports.ImportSessionTest do
 
       {:ok, _pid} = ImportSupervisor.start_import_session(import)
 
-      # Give the process a moment to start
-      # I don't like sleep calls, AI
-      :timer.sleep(50)
-
       {:ok, %{import: import}}
     end
 
@@ -44,7 +40,7 @@ defmodule Photor.Imports.ImportSessionTest do
       ImportSession.process_event(import.id, event)
 
       # Give the process a moment to process the event
-      :timer.sleep(50)
+      # :timer.sleep(50)
 
       state = ImportSession.get_state(import.id)
       assert state.import_status == :started
@@ -74,7 +70,7 @@ defmodule Photor.Imports.ImportSessionTest do
       ImportSession.process_event(import.id, event)
 
       # Give the process a moment to process the event
-      :timer.sleep(50)
+      # :timer.sleep(50)
 
       state = ImportSession.get_state(import.id)
       assert state.import_status == :scanning
@@ -128,7 +124,7 @@ defmodule Photor.Imports.ImportSessionTest do
       })
 
       # Give the process a moment to process the events
-      :timer.sleep(50)
+      # :timer.sleep(50)
 
       state = ImportSession.get_state(import.id)
       assert [skipped] = Map.values(state.files) |> Enum.filter(&(&1.status == :skipped))
@@ -164,7 +160,7 @@ defmodule Photor.Imports.ImportSessionTest do
       })
 
       # Give the process a moment to process the events
-      :timer.sleep(50)
+      # :timer.sleep(50)
 
       state = ImportSession.get_state(import.id)
       assert state.import_status == :importing
@@ -178,7 +174,7 @@ defmodule Photor.Imports.ImportSessionTest do
 
       # Give the process a moment to process the events
       # TODO: with call/3, those could be unnecessary now
-      :timer.sleep(50)
+      # :timer.sleep(50)
 
       state = ImportSession.get_state(import.id)
       assert state.current_file == nil
@@ -232,7 +228,7 @@ defmodule Photor.Imports.ImportSessionTest do
       })
 
       # Give the process a moment to process the events
-      :timer.sleep(50)
+      # :timer.sleep(50)
 
       state = ImportSession.get_state(import.id)
       assert state.import_status == :finished
