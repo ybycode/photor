@@ -18,7 +18,6 @@ defmodule Photor.Imports.ImportRegistry do
   @doc """
   Looks up an import session by import_id.
   """
-  # what's the point of this function, since we can use a via tuple, AI
   def lookup_session(import_id) do
     case Registry.lookup(registry_name(), {:import, import_id}) do
       [{pid, _}] -> {:ok, pid}

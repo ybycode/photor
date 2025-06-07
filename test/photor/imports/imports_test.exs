@@ -6,6 +6,19 @@ defmodule Photor.ImportsTest do
 
   import Photor.Factory
 
+  # Helper function to wait for import session to be ready
+  defp wait_for_import_session(import_id, max_attempts \\ 10) do
+    case Imports.get_import_state(import_id) do
+      {:error, :not_found} when max_attempts > 0 ->
+        Process.sleep(10)
+        wait_for_import_session(import_id, max_attempts - 1)
+      state when is_map(state) ->
+        state
+      other ->
+        other
+    end
+  end
+
   describe "start_import/1" do
     test "creates a new import record" do
       {:ok, %Import{} = i} = Imports.start_import("/test/source")
@@ -18,12 +31,11 @@ defmodule Photor.ImportsTest do
 
     test "starts an import session" do
       {:ok, %Import{} = import} = Imports.start_import("/test/source")
-      
-      # Give the process a moment to start
-      :timer.sleep(50)
+
+      # Wait for the import session to be ready
+      state = wait_for_import_session(import.id)
       
       # Check that we can get the state of the import session
-      state = Imports.get_import_state(import.id)
       assert is_map(state)
       assert state.import.id == import.id
     end
@@ -32,11 +44,10 @@ defmodule Photor.ImportsTest do
   describe "get_import_state/1" do
     test "returns the state of an import" do
       {:ok, %Import{} = import} = Imports.start_import("/test/source")
+
+      # Wait for the import session to be ready
+      state = wait_for_import_session(import.id)
       
-      # Give the process a moment to start
-      :timer.sleep(50)
-      
-      state = Imports.get_import_state(import.id)
       assert state.import.id == import.id
       assert state.import_status in [:starting, :started]
     end
@@ -52,7 +63,7 @@ defmodule Photor.ImportsTest do
         Enum.map(1..2, fn _ ->
           i = insert(:import)
           # Wait a moment to ensure different timestamps
-          :timer.sleep(10)
+          :timer.sleep(2)
           i
         end)
 
