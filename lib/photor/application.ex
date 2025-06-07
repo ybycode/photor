@@ -14,8 +14,10 @@ defmodule Photor.Application do
        repos: Application.fetch_env!(:photor, :ecto_repos), skip: skip_migrations?()},
       {DNSCluster, query: Application.get_env(:photor, :dns_cluster_query) || :ignore},
       {Phoenix.PubSub, name: Photor.PubSub},
-      # Start the ImportTracker GenServer
-      {Photor.Imports.ImportTracker, []},
+      # Start the Import Registry
+      {Registry, keys: :unique, name: Photor.Imports.ImportRegistry.registry_name()},
+      # Start the Import Supervisor
+      {Photor.Imports.ImportSupervisor, []},
       # Start to serve requests, typically the last entry
       PhotorWeb.Endpoint
     ]

@@ -15,6 +15,35 @@ defmodule Photor.ImportsTest do
       assert import != nil
       assert import.started_at == i.started_at
     end
+
+    test "starts an import session" do
+      {:ok, %Import{} = import} = Imports.start_import("/test/source")
+      
+      # Give the process a moment to start
+      :timer.sleep(50)
+      
+      # Check that we can get the state of the import session
+      state = Imports.get_import_state(import.id)
+      assert is_map(state)
+      assert state.import.id == import.id
+    end
+  end
+
+  describe "get_import_state/1" do
+    test "returns the state of an import" do
+      {:ok, %Import{} = import} = Imports.start_import("/test/source")
+      
+      # Give the process a moment to start
+      :timer.sleep(50)
+      
+      state = Imports.get_import_state(import.id)
+      assert state.import.id == import.id
+      assert state.import_status in [:starting, :started]
+    end
+
+    test "returns error for non-existent import" do
+      assert {:error, :not_found} = Imports.get_import_state(999)
+    end
   end
 
   describe "get_most_recent_import/0" do
