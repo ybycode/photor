@@ -2,7 +2,7 @@ defmodule Photor.Imports.ImportTracker do
   use GenServer
   require Logger
 
-  # alias Phoenix.PubSub
+  alias Phoenix.PubSub
 
   alias Photor.Imports.Events.FileImported
   alias Photor.Imports.Events.FileImporting
@@ -13,11 +13,13 @@ defmodule Photor.Imports.ImportTracker do
   alias Photor.Imports.Events.ImportStarted
   alias Photor.Imports.FileImport
 
-  # @pubsub Photor.PubSub
-  # @topic "import_progress"
+  @pubsub Photor.PubSub
+  @topic "imports"
   @default_name __MODULE__
 
   # Client API
+
+  def pubsub_topic, do: @topic
 
   def start_link(opts \\ []) do
     GenServer.start_link(__MODULE__, [], name: opts[:name] || @default_name)
@@ -79,7 +81,8 @@ defmodule Photor.Imports.ImportTracker do
   #
   @impl true
   def handle_call(
-        %ImportStarted{import_id: _import_id, started_at: _started_at, source_dir: _source_dir},
+        %ImportStarted{import_id: import_id, started_at: _started_at, source_dir: _source_dir} =
+          event,
         _from,
         state
       ) do
