@@ -4,22 +4,17 @@ defmodule Photor.Imports.ImportRegistry do
   """
 
   @doc """
-  Returns the registry name used for import sessions.
+  Registers the curent process process with the registry.
   """
-  def registry_name, do: __MODULE__
-
-  @doc """
-  Registers a process with the registry.
-  """
-  def register_session(import_id) do
-    Registry.register(registry_name(), {:import, import_id}, [])
+  def register_session(import_id, registry_name \\ __MODULE__) do
+    Registry.register(registry_name, import_id, [])
   end
 
   @doc """
   Looks up an import session by import_id.
   """
-  def lookup_session(import_id) do
-    case Registry.lookup(registry_name(), {:import, import_id}) do
+  def lookup_session(import_id, registry_name \\ __MODULE__) do
+    case Registry.lookup(registry_name, import_id) do
       [{pid, _}] -> {:ok, pid}
       [] -> {:error, :not_found}
     end
@@ -28,7 +23,7 @@ defmodule Photor.Imports.ImportRegistry do
   @doc """
   Lists all active import sessions.
   """
-  def list_sessions do
-    Registry.select(registry_name(), [{{:_, {:import, :"$1"}, :_}, [], [:"$1"]}])
+  def list_sessions(registry_name \\ __MODULE__) do
+    Registry.select(registry_name, [{{:_, :"$1", :_}, [], [:"$1"]}])
   end
 end

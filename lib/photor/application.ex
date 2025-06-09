@@ -15,7 +15,7 @@ defmodule Photor.Application do
       {DNSCluster, query: Application.get_env(:photor, :dns_cluster_query) || :ignore},
       {Phoenix.PubSub, name: Photor.PubSub},
       # Start the Import Registry
-      {Registry, keys: :unique, name: Photor.Imports.ImportRegistry.registry_name()},
+      {Registry, keys: :unique, name: Photor.Imports.ImportRegistry},
       # Start the Import Supervisor
       {Photor.Imports.ImportSupervisor, []},
       # Start to serve requests, typically the last entry

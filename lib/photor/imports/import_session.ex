@@ -191,6 +191,6 @@ defmodule Photor.Imports.ImportSession do
   # Helper functions
 
   defp via_tuple(import_id) do
-    {:via, Registry, {ImportRegistry.registry_name(), {:import, import_id}}}
+    {:via, Registry, {ImportRegistry, import_id}}
   end
 end
