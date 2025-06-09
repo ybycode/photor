@@ -28,6 +28,7 @@ defmodule Photor.Imports.ImportSessionTest do
       assert state.current_file_path == nil
       assert state.total_bytes_to_import == 0
       assert state.imported_bytes == 0
+      assert state.last_event_id == 0
     end
 
     test "processes import started event", %{import: import} do
@@ -39,11 +40,9 @@ defmodule Photor.Imports.ImportSessionTest do
 
       ImportSession.process_event(import.id, event)
 
-      # Give the process a moment to process the event
-      # :timer.sleep(50)
-
       state = ImportSession.get_state(import.id)
       assert state.import_status == :started
+      assert state.last_event_id == 1
     end
 
     test "processes files found event", %{import: import} do
@@ -69,9 +68,6 @@ defmodule Photor.Imports.ImportSessionTest do
 
       ImportSession.process_event(import.id, event)
 
-      # Give the process a moment to process the event
-      # :timer.sleep(50)
-
       state = ImportSession.get_state(import.id)
       assert state.import_status == :scanning
 
@@ -93,6 +89,7 @@ defmodule Photor.Imports.ImportSessionTest do
              }
 
       assert state.total_bytes_to_import == 3000
+      assert state.last_event_id == 1
     end
 
     test "processes file skipped event", %{import: import} do
@@ -123,12 +120,11 @@ defmodule Photor.Imports.ImportSessionTest do
         path: "/test/dir/file1.jpg"
       })
 
-      # Give the process a moment to process the events
-      # :timer.sleep(50)
-
       state = ImportSession.get_state(import.id)
       assert [skipped] = Map.values(state.files) |> Enum.filter(&(&1.status == :skipped))
       assert skipped.path == "/test/dir/file1.jpg"
+      # there's been 2 events:
+      assert state.last_event_id == 2
     end
 
     test "processes file importing and imported events", %{import: import} do
@@ -159,9 +155,6 @@ defmodule Photor.Imports.ImportSessionTest do
         path: "/test/dir/file1.jpg"
       })
 
-      # Give the process a moment to process the events
-      # :timer.sleep(50)
-
       state = ImportSession.get_state(import.id)
       assert state.import_status == :importing
       assert state.current_file_path == "/test/dir/file1.jpg"
@@ -177,6 +170,7 @@ defmodule Photor.Imports.ImportSessionTest do
       assert [imported] = Map.values(state.files) |> Enum.filter(&(&1.status == :imported))
       assert imported.path == "/test/dir/file1.jpg"
       assert state.imported_bytes == 1000
+      assert state.last_event_id == 3
     end
 
     test "processes import finished event", %{import: import} do
@@ -222,9 +216,6 @@ defmodule Photor.Imports.ImportSessionTest do
         imported_count: 2,
         imported_bytes: 3000
       })
-
-      # Give the process a moment to process the events
-      # :timer.sleep(50)
 
       state = ImportSession.get_state(import.id)
       assert state.import_status == :finished

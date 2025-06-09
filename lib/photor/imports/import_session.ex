@@ -64,7 +64,8 @@ defmodule Photor.Imports.ImportSession do
       current_file_path: nil,
       total_bytes_to_import: 0,
       imported_bytes: 0,
-      started_at: import.started_at
+      started_at: import.started_at,
+      last_event_id: 0
     }
 
     {:ok, state}
@@ -77,7 +78,9 @@ defmodule Photor.Imports.ImportSession do
 
   @impl true
   def handle_call({:event, event}, _from, state) do
-    new_state = process_import_event(event, state)
+    new_state =
+      process_import_event(event, state)
+      |> update_in([:last_event_id], &(&1 + 1))
 
     # Broadcast the event to subscribers if needed
     PubSub.broadcast(@pubsub, pubsub_topic(state.import.id), {:import_event, event})
