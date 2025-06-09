@@ -26,7 +26,6 @@ defmodule Photor.Imports.ImportSession do
   Returns the current state of an import session.
   """
   def get_state(import_id) do
-    # TODO get rid of this lookup_session
     case ImportRegistry.lookup_session(import_id) do
       {:ok, pid} -> GenServer.call(pid, :get_state)
       {:error, :not_found} -> {:error, :not_found}
@@ -37,7 +36,6 @@ defmodule Photor.Imports.ImportSession do
   Processes an import event.
   """
   def process_event(import_id, event) do
-    # TODO get rid of this lookup_session
     case ImportRegistry.lookup_session(import_id) do
       {:ok, pid} -> GenServer.call(pid, {:event, event})
       {:error, :not_found} -> {:error, :not_found}
@@ -63,7 +61,7 @@ defmodule Photor.Imports.ImportSession do
       import_status: :starting,
       # Map of path => FileImport struct
       files: %{},
-      current_file: nil,
+      current_file_path: nil,
       total_bytes_to_import: 0,
       imported_bytes: 0,
       started_at: import.started_at
@@ -130,18 +128,16 @@ defmodule Photor.Imports.ImportSession do
 
   defp process_import_event(%Events.FileImporting{path: path}, state) do
     # Update the status of the file to :ongoing
-    # TODO: maybe use get_and_update_in here, to avoid the Map.get that follows?
-    new_state =
-      update_in(state.files[path], fn file_import ->
-        %{file_import | status: :ongoing}
+
+    {file_import, state} =
+      get_and_update_in(state.files[path], fn file_import ->
+        fi = %{file_import | status: :ongoing}
+        {fi, fi}
       end)
 
-    # Set as current file
-    current_file = Map.get(new_state.files, path)
-
     %{
-      new_state
-      | current_file: current_file,
+      state
+      | current_file_path: file_import.path,
         import_status: :importing
     }
   end
@@ -149,7 +145,6 @@ defmodule Photor.Imports.ImportSession do
   defp process_import_event(%Events.FileImported{path: path}, state) do
     # Update the status of the file to :imported
 
-    # TODO: use get_and_update_in/2 here instead of fetching after
     {file_import, state} =
       get_and_update_in(state.files[path], fn file_import ->
         fi = %{file_import | status: :imported}
@@ -162,7 +157,7 @@ defmodule Photor.Imports.ImportSession do
     %{
       state
       | imported_bytes: imported_bytes,
-        current_file: nil
+        current_file_path: nil
     }
   end
 
@@ -176,7 +171,7 @@ defmodule Photor.Imports.ImportSession do
     %{
       state
       | files: new_files,
-        current_file: nil
+        current_file_path: nil
     }
   end
 
@@ -184,7 +179,7 @@ defmodule Photor.Imports.ImportSession do
     %{
       state
       | import_status: :finished,
-        current_file: nil
+        current_file_path: nil
     }
   end
 
