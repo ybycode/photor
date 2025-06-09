@@ -20,6 +20,7 @@ defmodule Photor.Imports.Importer do
 
   ## Parameters
 
+  - import: The Import struct representing this import
   - source_dir: Directory containing files to import
   - opts: Options for importing
     - :recursive - whether to scan subdirectories (default: true)
@@ -38,7 +39,7 @@ defmodule Photor.Imports.Importer do
     types = Keyword.get(opts, :types, nil)
     repo_base_dir = Application.fetch_env!(:photor, :photor_dir)
 
-    # Notify the tracker that an import has started
+    # Notify that an import has started
     emit(event_fn, %Events.ImportStarted{
       import_id: import.id,
       started_at: import.started_at,
@@ -47,6 +48,7 @@ defmodule Photor.Imports.Importer do
 
     with {:ok, files} <- Scanner.scan_directory(source_dir, recursive: recursive, types: types) do
       emit(event_fn, %Events.FilesFound{
+        import_id: import.id,
         files: files
       })
 
@@ -117,11 +119,19 @@ defmodule Photor.Imports.Importer do
          {:ok, file_stat} <- File.stat(source_path) do
       # Check if the file already exists in the database
       if PhotoOperations.photo_exists_by_partial_hash?(partial_hash) do
-        emit(event_fn, %Events.FileSkipped{path: source_path})
+        emit(event_fn, %Events.FileSkipped{
+          import_id: import.id,
+          path: source_path
+        })
+
         {:ok, :already_exists}
       else
         # Continue with import since it's a new file
-        emit(event_fn, %Events.FileImporting{path: source_path})
+        emit(event_fn, %Events.FileImporting{
+          import_id: import.id,
+          path: source_path
+        })
+
         destination_dir = get_destination_dir(repo_base_dir, metadata)
         new_filename = generate_filename(source_path, partial_hash)
         destination_path = Path.join(destination_dir, new_filename)
@@ -139,6 +149,7 @@ defmodule Photor.Imports.Importer do
                  file_stat.size
                ) do
           emit(event_fn, %Events.FileImported{
+            import_id: import.id,
             path: source_path
           })
 
@@ -150,6 +161,7 @@ defmodule Photor.Imports.Importer do
             _ = File.rm(destination_path)
 
             emit(event_fn, %Events.ImportError{
+              import_id: import.id,
               path: source_path,
               reason: "Database insertion failed: #{inspect(changeset.errors)}"
             })
@@ -159,6 +171,7 @@ defmodule Photor.Imports.Importer do
           # Handle other errors from previous steps
           {:error, reason} ->
             emit(event_fn, %Events.ImportError{
+              import_id: import.id,
               path: source_path,
               reason: reason
             })
@@ -169,6 +182,7 @@ defmodule Photor.Imports.Importer do
     else
       {:error, reason} ->
         emit(event_fn, %Events.ImportError{
+          import_id: import.id,
           path: source_path,
           reason: reason
         })

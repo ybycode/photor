@@ -7,19 +7,20 @@ defmodule Photor.Imports.Events do
   end
 
   defmodule FilesFound do
-    defstruct [:files]
+    defstruct [:import_id, :files]
   end
 
   defmodule FileSkipped do
-    defstruct [:path]
+    defstruct [:import_id, :path]
   end
 
   defmodule FileImporting do
-    defstruct [:path]
+    defstruct [:import_id, :path]
   end
 
   defmodule FileImported do
     defstruct [
+      :import_id,
       :path
     ]
   end
@@ -35,6 +36,10 @@ defmodule Photor.Imports.Events do
   end
 
   defmodule ImportError do
-    defstruct [:path, :reason]
+    defstruct [
+      :import_id,
+      :path,
+      :reason
+    ]
   end
 end

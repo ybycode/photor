@@ -6,14 +6,50 @@ defmodule Photor.ImportsTest do
 
   import Photor.Factory
 
+  setup do
+    on_exit(fn ->
+      # stop ImportSession processes at the end of tests.
+      DynamicSupervisor.which_children(Photor.Imports.ImportSupervisor)
+      |> Enum.each(fn {_id, pid, _type, _module} ->
+        :ok = DynamicSupervisor.terminate_child(Photor.Imports.ImportSupervisor, pid)
+      end)
+    end)
+  end
+
   describe "start_import/1" do
     test "creates a new import record" do
-      {:ok, %Import{} = i} = Imports.start_import("/test/source")
+      assert {:ok, %Import{} = i} = Imports.start_import("/test/source")
 
       # Check that an import record was created
       import = Repo.get(Import, i.id)
       assert import != nil
       assert import.started_at == i.started_at
+    end
+
+    test "starts an import session" do
+      assert {:ok, %Import{} = import} = Imports.start_import("/test/source")
+
+      state = Imports.get_import_state(import.id)
+
+      # Check that we can get the state of the import session
+      assert is_map(state)
+      assert state.import.id == import.id
+    end
+  end
+
+  describe "get_import_state/1" do
+    test "returns the state of an import" do
+      assert {:ok, %Import{} = import} = Imports.start_import("/test/source")
+
+      # Wait for the import session to be ready
+      state = Imports.get_import_state(import.id)
+
+      assert state.import.id == import.id
+      assert state.import_status in [:starting, :started]
+    end
+
+    test "returns error for non-existent import" do
+      assert {:error, :not_found} = Imports.get_import_state(999)
     end
   end
 
@@ -23,7 +59,7 @@ defmodule Photor.ImportsTest do
         Enum.map(1..2, fn _ ->
           i = insert(:import)
           # Wait a moment to ensure different timestamps
-          :timer.sleep(10)
+          :timer.sleep(2)
           i
         end)
 
