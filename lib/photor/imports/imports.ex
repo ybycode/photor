@@ -18,9 +18,6 @@ defmodule Photor.Imports do
     # Create a new import record
     import = Import.new_changeset() |> Repo.insert!()
 
-    # Stop any existing import session with the same ID (for tests)
-    ImportSupervisor.stop_import_session(import.id)
-
     # Start a new import session
     case ImportSupervisor.start_import_session(import) do
       {:ok, _pid} ->

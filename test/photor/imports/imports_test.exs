@@ -6,22 +6,19 @@ defmodule Photor.ImportsTest do
 
   import Photor.Factory
 
-  # Helper function to wait for import session to be ready
-  defp wait_for_import_session(import_id, max_attempts \\ 10) do
-    case Imports.get_import_state(import_id) do
-      {:error, :not_found} when max_attempts > 0 ->
-        Process.sleep(10)
-        wait_for_import_session(import_id, max_attempts - 1)
-      state when is_map(state) ->
-        state
-      other ->
-        other
-    end
+  setup do
+    on_exit(fn ->
+      # stop ImportSession processes at the end of tests.
+      DynamicSupervisor.which_children(Photor.Imports.ImportSupervisor)
+      |> Enum.each(fn {_id, pid, _type, _module} ->
+        :ok = DynamicSupervisor.terminate_child(Photor.Imports.ImportSupervisor, pid)
+      end)
+    end)
   end
 
   describe "start_import/1" do
     test "creates a new import record" do
-      {:ok, %Import{} = i} = Imports.start_import("/test/source")
+      assert {:ok, %Import{} = i} = Imports.start_import("/test/source")
 
       # Check that an import record was created
       import = Repo.get(Import, i.id)
@@ -30,11 +27,10 @@ defmodule Photor.ImportsTest do
     end
 
     test "starts an import session" do
-      {:ok, %Import{} = import} = Imports.start_import("/test/source")
+      assert {:ok, %Import{} = import} = Imports.start_import("/test/source")
 
-      # Wait for the import session to be ready
-      state = wait_for_import_session(import.id)
-      
+      state = Imports.get_import_state(import.id)
+
       # Check that we can get the state of the import session
       assert is_map(state)
       assert state.import.id == import.id
@@ -43,11 +39,11 @@ defmodule Photor.ImportsTest do
 
   describe "get_import_state/1" do
     test "returns the state of an import" do
-      {:ok, %Import{} = import} = Imports.start_import("/test/source")
+      assert {:ok, %Import{} = import} = Imports.start_import("/test/source")
 
       # Wait for the import session to be ready
-      state = wait_for_import_session(import.id)
-      
+      state = Imports.get_import_state(import.id)
+
       assert state.import.id == import.id
       assert state.import_status in [:starting, :started]
     end
