@@ -20,6 +20,7 @@ defmodule PhotorWeb.Router do
     get "/", PageController, :home
     live "/albums", AlbumsLive.Index
     live "/albums/:date", AlbumsLive.Show
+    live "/imports", ImportLive.Index
     # get "/:date", PageController, :album
   end
 

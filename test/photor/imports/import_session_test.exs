@@ -28,8 +28,12 @@ defmodule Photor.Imports.ImportSessionTest do
                   started_at: import.started_at,
                   import_id: 1,
                   import_status: :starting,
+                  total_number_of_files: 0,
+                  files_skipped: 0,
+                  files_imported: 0,
                   current_file_path: nil,
-                  total_bytes_to_import: 0,
+                  total_bytes: 0,
+                  skipped_bytes: 0,
                   imported_bytes: 0,
                   last_event_id: 0
                 }}
@@ -47,7 +51,8 @@ defmodule Photor.Imports.ImportSessionTest do
       assert state.import_status == :starting
       assert state.files == %{}
       assert state.current_file_path == nil
-      assert state.total_bytes_to_import == 0
+      assert state.total_bytes == 0
+      assert state.skipped_bytes == 0
       assert state.imported_bytes == 0
       assert state.last_event_id == 0
     end
@@ -85,15 +90,16 @@ defmodule Photor.Imports.ImportSessionTest do
         }
       ]
 
-      event = %Events.FilesFound{
+      event1 = %Events.FilesFound{
         import_id: import.id,
         files: files
       }
 
-      ImportSession.process_event(import.id, event)
+      ImportSession.process_event(import.id, event1)
 
       state = :sys.get_state(import_session_pid)
       assert state.import_status == :scanning
+      assert state.total_number_of_files == 2
 
       assert state.files == %{
                "/test/dir/file1.jpg" => %Photor.Imports.FileImport{
@@ -112,8 +118,28 @@ defmodule Photor.Imports.ImportSessionTest do
                }
              }
 
-      assert state.total_bytes_to_import == 3000
+      assert state.total_bytes == 3000
+      assert state.skipped_bytes == 0
       assert state.last_event_id == 1
+
+      event2 = %Events.FilesFound{
+        import_id: import.id,
+        files: [
+          %Photor.Files.File{
+            path: "/test/dir/file3.jpg",
+            type: %{medium: :photo, type: :compressed, extension: "jpg"},
+            bytesize: 4000,
+            access: :read_write
+          }
+        ]
+      }
+
+      ImportSession.process_event(import.id, event2)
+
+      state = :sys.get_state(import_session_pid)
+      assert state.total_bytes == 7000
+      assert state.last_event_id == 2
+      assert state.total_number_of_files == 3
     end
 
     test "processes file skipped event", %{import: import, import_session_pid: import_session_pid} do
@@ -130,6 +156,12 @@ defmodule Photor.Imports.ImportSessionTest do
           type: %{medium: :photo, type: :compressed, extension: "jpg"},
           bytesize: 2000,
           access: :read_write
+        },
+        %Photor.Files.File{
+          path: "/test/dir/file3.jpg",
+          type: %{medium: :photo, type: :compressed, extension: "jpg"},
+          bytesize: 3000,
+          access: :read_write
         }
       ]
 
@@ -138,17 +170,27 @@ defmodule Photor.Imports.ImportSessionTest do
         files: files
       })
 
-      # Now skip a file
+      # Now skip two files
       ImportSession.process_event(import.id, %Events.FileSkipped{
         import_id: import.id,
         path: "/test/dir/file1.jpg"
       })
 
+      ImportSession.process_event(import.id, %Events.FileSkipped{
+        import_id: import.id,
+        path: "/test/dir/file3.jpg"
+      })
+
       state = :sys.get_state(import_session_pid)
-      assert [skipped] = Map.values(state.files) |> Enum.filter(&(&1.status == :skipped))
-      assert skipped.path == "/test/dir/file1.jpg"
-      # there's been 2 events:
-      assert state.last_event_id == 2
+
+      assert [skipped1, _skipped2] =
+               Map.values(state.files) |> Enum.filter(&(&1.status == :skipped))
+
+      assert skipped1.path == "/test/dir/file1.jpg"
+      assert state.files_skipped == 2
+      assert state.skipped_bytes == 4000
+      # there's been 3 events:
+      assert state.last_event_id == 3
     end
 
     test "processes file importing and imported events", %{
@@ -210,8 +252,12 @@ defmodule Photor.Imports.ImportSessionTest do
                   started_at: import.started_at,
                   import_id: import.id,
                   import_status: :starting,
+                  total_number_of_files: 0,
+                  files_skipped: 0,
+                  files_imported: 0,
                   current_file_path: nil,
-                  total_bytes_to_import: 0,
+                  total_bytes: 0,
+                  skipped_bytes: 0,
                   imported_bytes: 0,
                   last_event_id: 0
                 }}
@@ -243,8 +289,12 @@ defmodule Photor.Imports.ImportSessionTest do
                   started_at: import.started_at,
                   import_id: import.id,
                   import_status: :scanning,
+                  total_number_of_files: 2,
+                  files_skipped: 0,
+                  files_imported: 0,
                   current_file_path: nil,
-                  total_bytes_to_import: 3000,
+                  total_bytes: 3000,
+                  skipped_bytes: 0,
                   imported_bytes: 0,
                   last_event_id: 1
                 }}
@@ -268,8 +318,12 @@ defmodule Photor.Imports.ImportSessionTest do
                   started_at: import.started_at,
                   import_id: import.id,
                   import_status: :importing,
+                  total_number_of_files: 2,
+                  files_skipped: 0,
+                  files_imported: 2,
                   current_file_path: nil,
-                  total_bytes_to_import: 3000,
+                  total_bytes: 3000,
+                  skipped_bytes: 0,
                   imported_bytes: 3000,
                   last_event_id: 5
                 }}
@@ -283,8 +337,12 @@ defmodule Photor.Imports.ImportSessionTest do
                   started_at: import.started_at,
                   import_id: import.id,
                   import_status: :finished,
+                  total_number_of_files: 2,
+                  files_skipped: 0,
+                  files_imported: 2,
                   current_file_path: nil,
-                  total_bytes_to_import: 3000,
+                  total_bytes: 3000,
+                  skipped_bytes: 0,
                   imported_bytes: 3000,
                   last_event_id: 6
                 }}

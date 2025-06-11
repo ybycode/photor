@@ -68,11 +68,15 @@ defmodule Photor.Imports.ImportSession do
     state = %{
       import_id: import.id,
       import_status: :starting,
+      total_number_of_files: 0,
+      files_skipped: 0,
+      files_imported: 0,
       # Map of path => FileImport struct
       files: %{},
       current_file_path: nil,
-      total_bytes_to_import: 0,
+      total_bytes: 0,
       imported_bytes: 0,
+      skipped_bytes: 0,
       started_at: import.started_at,
       last_event_id: 0
     }
@@ -105,6 +109,7 @@ defmodule Photor.Imports.ImportSession do
 
   defp process_import_event(%Events.FilesFound{files: files}, state) do
     # Create a map of path => FileImport struct
+    # TODO: somewhere should be checked the file.access value.
     files_map =
       files
       |> Enum.map(fn file ->
@@ -120,12 +125,17 @@ defmodule Photor.Imports.ImportSession do
       |> Map.new()
 
     # Calculate total bytes to import
-    total_bytes = Enum.reduce(files, 0, fn %{bytesize: size}, acc -> acc + size end)
+    total_bytes =
+      Enum.reduce(files, state.total_bytes, fn %{bytesize: size}, acc ->
+        acc + size
+      end)
 
     %{
       state
-      | files: files_map,
-        total_bytes_to_import: total_bytes,
+      | # TODO: this scraps the previous files instead of adding to it.
+        files: files_map,
+        total_number_of_files: state.total_number_of_files + length(files),
+        total_bytes: total_bytes,
         # TODO: at this point the scanning is done, so this needs changing.
         import_status: :scanning
     }
@@ -133,9 +143,17 @@ defmodule Photor.Imports.ImportSession do
 
   defp process_import_event(%Events.FileSkipped{path: path}, state) do
     # Update the status of the file to :skipped
-    update_in(state.files[path], fn file_import ->
-      %{file_import | status: :skipped}
-    end)
+    {file_import, state} =
+      get_and_update_in(state.files[path], fn file_import ->
+        fi = %{file_import | status: :skipped}
+        {fi, fi}
+      end)
+
+    %{
+      state
+      | files_skipped: state.files_skipped + 1,
+        skipped_bytes: state.skipped_bytes + file_import.bytesize
+    }
   end
 
   defp process_import_event(%Events.FileImporting{path: path}, state) do
@@ -163,12 +181,10 @@ defmodule Photor.Imports.ImportSession do
         {fi, fi}
       end)
 
-    # Calculate imported bytes
-    imported_bytes = state.imported_bytes + (file_import.bytesize || 0)
-
     %{
       state
-      | imported_bytes: imported_bytes,
+      | imported_bytes: state.imported_bytes + (file_import.bytesize || 0),
+        files_imported: state.files_imported + 1,
         current_file_path: nil
     }
   end

@@ -71,8 +71,12 @@ defmodule Photor.ImportsTest do
                  started_at: import1.started_at,
                  import_id: import1.id,
                  import_status: :started,
+                 total_number_of_files: 0,
+                 files_skipped: 0,
+                 files_imported: 0,
                  current_file_path: nil,
-                 total_bytes_to_import: 0,
+                 total_bytes: 0,
+                 skipped_bytes: 0,
                  imported_bytes: 0,
                  last_event_id: 1
                },
@@ -80,8 +84,12 @@ defmodule Photor.ImportsTest do
                  started_at: import2.started_at,
                  import_id: import2.id,
                  import_status: :started,
+                 total_number_of_files: 2,
+                 files_skipped: 0,
+                 files_imported: 0,
                  current_file_path: nil,
-                 total_bytes_to_import: 3000,
+                 total_bytes: 3000,
+                 skipped_bytes: 0,
                  imported_bytes: 0,
                  last_event_id: 2
                }
@@ -101,8 +109,12 @@ defmodule Photor.ImportsTest do
                started_at: import1.started_at,
                import_id: import1.id,
                import_status: :started,
+               total_number_of_files: 0,
+               files_skipped: 0,
+               files_imported: 0,
                current_file_path: nil,
-               total_bytes_to_import: 0,
+               total_bytes: 0,
+               skipped_bytes: 0,
                imported_bytes: 0,
                last_event_id: 1
              }
