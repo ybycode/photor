@@ -42,4 +42,3 @@ The "repository" is simply a collection of all photos, in directories named afte
 
 (WIP)
 
-    # NOTE: the subscribing client receives the state at the time of the request, and is subscribed to updates. To avoid consistency issues due to the concurrency, the subscribing client would (in the best case) subscribe to events, then accumulate events until the inistal state is received, and only apply already received events onto the state if their event id is greater than the last event id indicated in the state. HOWEVER in our case the state (

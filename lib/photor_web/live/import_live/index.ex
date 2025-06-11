@@ -3,6 +3,10 @@ defmodule PhotorWeb.ImportLive.Index do
   alias Photor.Imports
 
   def mount(_params, _session, socket) do
+    # NOTE: consistency issues between initial state and update due to
+    # concurrency aren't considered here, given that the received events
+    # override entirely the initial state.
+
     # Subscribe to import updates
     Imports.subscribe_to_import_sessions()
 
