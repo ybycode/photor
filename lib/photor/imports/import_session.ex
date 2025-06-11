@@ -11,9 +11,16 @@ defmodule Photor.Imports.ImportSession do
   alias Photor.Imports.ImportRegistry
   alias Phoenix.PubSub
 
-  @pubsub Photor.PubSub
+  @pubsub_name Photor.PubSub
+  @pubsub_topic "imports"
 
   # Client API
+
+  @doc """
+  Returns the PubSub topic for an import.
+  """
+  def pubsub_name(), do: @pubsub_name
+  def pubsub_topic(), do: @pubsub_topic
 
   @doc """
   Starts a new import session for the given import.
@@ -25,10 +32,13 @@ defmodule Photor.Imports.ImportSession do
   @doc """
   Returns the current state of an import session.
   """
-  def get_state(import_id) do
+  def get_import_info(import_id) do
     case ImportRegistry.lookup_session(import_id) do
-      {:ok, pid} -> GenServer.call(pid, :get_state)
-      {:error, :not_found} -> {:error, :not_found}
+      {:ok, pid} ->
+        GenServer.call(pid, :get_import_info)
+
+      {:error, :not_found} ->
+        {:error, :not_found}
     end
   end
 
@@ -42,10 +52,9 @@ defmodule Photor.Imports.ImportSession do
     end
   end
 
-  @doc """
-  Returns the PubSub topic for an import.
-  """
-  def pubsub_topic(import_id), do: "import:#{import_id}"
+  # helper
+
+  defp make_import_info(state), do: Map.delete(state, :files)
 
   # Server callbacks
 
@@ -57,7 +66,7 @@ defmodule Photor.Imports.ImportSession do
     ImportRegistry.register_session(import.id)
 
     state = %{
-      import: import,
+      import_id: import.id,
       import_status: :starting,
       # Map of path => FileImport struct
       files: %{},
@@ -72,8 +81,9 @@ defmodule Photor.Imports.ImportSession do
   end
 
   @impl true
-  def handle_call(:get_state, _from, state) do
-    {:reply, state, state}
+  def handle_call(:get_import_info, _from, state) do
+    # the whole state minus the files info is returned:
+    {:reply, {:ok, make_import_info(state)}, state}
   end
 
   @impl true
@@ -82,8 +92,7 @@ defmodule Photor.Imports.ImportSession do
       process_import_event(event, state)
       |> update_in([:last_event_id], &(&1 + 1))
 
-    # Broadcast the event to subscribers if needed
-    PubSub.broadcast(@pubsub, pubsub_topic(state.import.id), {:import_event, event})
+    broadcast({:import_update, state.import_id, make_import_info(new_state)})
 
     {:reply, :ok, new_state}
   end
@@ -190,5 +199,13 @@ defmodule Photor.Imports.ImportSession do
 
   defp via_tuple(import_id) do
     {:via, Registry, {ImportRegistry, import_id}}
+  end
+
+  defp broadcast(payload) do
+    PubSub.broadcast(
+      @pubsub_name,
+      @pubsub_topic,
+      payload
+    )
   end
 end

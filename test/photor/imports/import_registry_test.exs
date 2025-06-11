@@ -33,7 +33,13 @@ defmodule Photor.Imports.ImportRegistryTest do
           })
         end)
 
-      # lookup works:
+      # lookup_sessions works:
+      assert list = ImportRegistry.lookup_sessions(@test_registry_name)
+      assert length(list) == 2
+      assert "agent-1" in list
+      assert "agent-2" in list
+
+      # lookup_session works:
       assert {:ok, ^pid1} = ImportRegistry.lookup_session("agent-1", @test_registry_name)
       assert {:ok, ^pid2} = ImportRegistry.lookup_session("agent-2", @test_registry_name)
 

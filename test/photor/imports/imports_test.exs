@@ -2,13 +2,17 @@ defmodule Photor.ImportsTest do
   use Photor.DataCase
 
   alias Photor.Imports
+  alias Photor.Imports.ImportSession
+  alias Photor.Imports.Events
   alias Photor.Imports.Import
+  alias Photor.Imports.ImportRegistry
 
   import Photor.Factory
 
   setup do
     on_exit(fn ->
-      # stop ImportSession processes at the end of tests.
+      # Tests are using the application's ImportSupervisor and so are stateful.
+      # All its children processes are terminated before each test:
       DynamicSupervisor.which_children(Photor.Imports.ImportSupervisor)
       |> Enum.each(fn {_id, pid, _type, _module} ->
         :ok = DynamicSupervisor.terminate_child(Photor.Imports.ImportSupervisor, pid)
@@ -29,27 +33,79 @@ defmodule Photor.ImportsTest do
     test "starts an import session" do
       assert {:ok, %Import{} = import} = Imports.start_import("/test/source")
 
-      state = Imports.get_import_state(import.id)
+      state = :sys.get_state({:via, Registry, {ImportRegistry, import.id}})
 
       # Check that we can get the state of the import session
       assert is_map(state)
-      assert state.import.id == import.id
+      assert state.import_id == import.id
     end
   end
 
-  describe "get_import_state/1" do
-    test "returns the state of an import" do
-      assert {:ok, %Import{} = import} = Imports.start_import("/test/source")
+  describe "get_all_imports_info/0" do
+    test "works" do
+      assert {:ok, %Import{} = import1} = Imports.start_import("/test/source")
+      assert {:ok, %Import{} = import2} = Imports.start_import("/test/source")
 
-      # Wait for the import session to be ready
-      state = Imports.get_import_state(import.id)
+      files = [
+        %Photor.Files.File{
+          path: "/test/dir/file1.jpg",
+          type: %{medium: :photo, type: :compressed, extension: "jpg"},
+          bytesize: 1000,
+          access: :read_write
+        },
+        %Photor.Files.File{
+          path: "/test/dir/file2.jpg",
+          type: %{medium: :photo, type: :compressed, extension: "jpg"},
+          bytesize: 2000,
+          access: :read_write
+        }
+      ]
 
-      assert state.import.id == import.id
-      assert state.import_status in [:starting, :started]
+      ImportSession.process_event(import2.id, %Events.FilesFound{
+        import_id: import2.id,
+        files: files
+      })
+
+      assert Imports.get_all_imports_info() == %{
+               import1.id => %{
+                 started_at: import1.started_at,
+                 import_id: import1.id,
+                 import_status: :started,
+                 current_file_path: nil,
+                 total_bytes_to_import: 0,
+                 imported_bytes: 0,
+                 last_event_id: 1
+               },
+               import2.id => %{
+                 started_at: import2.started_at,
+                 import_id: import2.id,
+                 import_status: :started,
+                 current_file_path: nil,
+                 total_bytes_to_import: 3000,
+                 imported_bytes: 0,
+                 last_event_id: 2
+               }
+             }
     end
+  end
 
-    test "returns error for non-existent import" do
-      assert {:error, :not_found} = Imports.get_import_state(999)
+  describe "subscribe_to_import_sessions/0" do
+    test "subscribes the current process to a phoenix pubsub" do
+      assert :ok = Imports.subscribe_to_import_sessions()
+      assert {:ok, %Import{} = import1} = Imports.start_import("/test/source")
+
+      import_id = import1.id
+      assert_receive {:import_update, ^import_id, payload}
+
+      assert payload == %{
+               started_at: import1.started_at,
+               import_id: import1.id,
+               import_status: :started,
+               current_file_path: nil,
+               total_bytes_to_import: 0,
+               imported_bytes: 0,
+               last_event_id: 1
+             }
     end
   end
 

@@ -10,6 +10,10 @@ defmodule Photor.Imports.ImportRegistry do
     Registry.register(registry_name, import_id, [])
   end
 
+  def lookup_sessions(registry_name \\ __MODULE__) do
+    Registry.select(registry_name, [{{:"$1", :_, :_}, [], [:"$1"]}])
+  end
+
   @doc """
   Looks up an import session by import_id.
   """
