@@ -19,7 +19,9 @@ config :logger, level: :warning
 # Initialize plugs at runtime for faster test compilation
 config :phoenix, :plug_init_mode, :runtime
 
-config :photor, photor_dir: "test/photos_repo"
+config :photor,
+  photor_dir: "test/photos_repo",
+  partial_hash_nb_bytes: 512 * 1024
 
 # Enable helpful, but potentially expensive runtime checks
 config :phoenix_live_view,

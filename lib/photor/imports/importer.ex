@@ -40,7 +40,7 @@ defmodule Photor.Imports.Importer do
     repo_base_dir = Application.fetch_env!(:photor, :photor_dir)
 
     # Notify that an import has started
-    emit(event_fn, %Events.ImportStarted{
+    emit(event_fn, %Events.NewImport{
       import_id: import.id,
       started_at: import.started_at,
       source_dir: source_dir
@@ -52,142 +52,155 @@ defmodule Photor.Imports.Importer do
         files: files
       })
 
-      results =
-        Enum.map(files, fn %{path: path} ->
-          import_file(import, repo_base_dir, path, opts, event_fn)
-        end)
-
-      # Count results for final summary
-      total_files = length(results)
-
-      skipped_count =
-        Enum.count(results, fn
-          {:ok, :already_exists} -> true
-          _ -> false
-        end)
-
-      imported_count =
-        Enum.count(results, fn
-          {:ok, path} when is_binary(path) -> true
-          _ -> false
-        end)
-
-      imported_bytes =
-        Enum.reduce(results, 0, fn
-          {:ok, path}, acc when is_binary(path) ->
-            case File.stat(path) do
-              {:ok, %{size: size}} -> acc + size
-              _ -> acc
-            end
-
-          _, acc ->
-            acc
-        end)
-
-      emit(event_fn, %Events.ImportFinished{
-        import_id: import.id,
-        total_files: total_files,
-        skipped_count: skipped_count,
-        imported_count: imported_count,
-        imported_bytes: imported_bytes
+      emit(event_fn, %Events.ScanStarted{
+        import_id: import.id
       })
 
-      {:ok, results}
+      find_new_files(files, import.id, event_fn)
+      |> tap(fn new_files ->
+        {nb_files_to_import, bytes_to_import} =
+          Enum.reduce(new_files, {0, 0}, fn {_path, _partial_hash, bytesize},
+                                            {nb_files, nb_bytes} ->
+            {nb_files + 1, nb_bytes + bytesize}
+          end)
+
+        emit(event_fn, %Events.ImportStarted{
+          import_id: import.id,
+          nb_files_to_import: nb_files_to_import,
+          bytes_to_import: bytes_to_import
+        })
+      end)
+      |> Enum.each(fn {path, partial_hash, size} ->
+        import_file(import, repo_base_dir, path, partial_hash, size, event_fn)
+      end)
+
+      emit(event_fn, %Events.ImportFinished{
+        import_id: import.id
+      })
+
+      :ok
+    else
+      # TODO: emit an error event?
+      error -> error
     end
   end
 
-  @doc """
-  Imports a file into the repository.
+  defp find_new_files(files, import_id, event_fn) do
+    partial_hash_nb_bytes =
+      Application.fetch_env!(:photor, :partial_hash_nb_bytes)
+      |> String.to_integer()
 
-  ## Parameters
-
-  - source_path: Path to the source file
-  - repo_base_dir: Base directory of the repository
-  - opts: Options for importing
-    - :copy_strategy - :copy (default) or :move
-    - :overwrite - whether to overwrite existing files (default: false)
-  - event_fn: Optional function to emit events during the import process
-
-  ## Returns
-
-  - {:ok, destination_path} - If the file was successfully imported
-  - {:error, reason} - If the import failed
-  """
-  def import_file(%Import{} = import, repo_base_dir, source_path, opts \\ [], event_fn \\ nil) do
-    with {:ok, metadata} <- Metadata.read(source_path),
-         {:ok, partial_hash} <- Hasher.hash_file_first_bytes(source_path, 1024),
-         {:ok, file_stat} <- File.stat(source_path) do
-      # Check if the file already exists in the database
-      if PhotoOperations.photo_exists_by_partial_hash?(partial_hash) do
-        emit(event_fn, %Events.FileSkipped{
-          import_id: import.id,
-          path: source_path
-        })
-
-        {:ok, :already_exists}
-      else
-        # Continue with import since it's a new file
-        emit(event_fn, %Events.FileImporting{
-          import_id: import.id,
-          path: source_path
-        })
-
-        destination_dir = get_destination_dir(repo_base_dir, metadata)
-        new_filename = generate_filename(source_path, partial_hash)
-        destination_path = Path.join(destination_dir, new_filename)
-
-        with :ok <- ensure_directory(destination_dir),
-             :ok <- copy_file(source_path, destination_path, opts),
-             # Handle database insertion result properly
-             {:ok, _photo} <-
-               PhotoOperations.insert_from_metadata(
-                 import,
-                 metadata,
-                 new_filename,
-                 Path.basename(destination_dir),
-                 partial_hash,
-                 file_stat.size
-               ) do
-          emit(event_fn, %Events.FileImported{
-            import_id: import.id,
-            path: source_path
+    Enum.reduce(files, [], fn %{path: path}, acc ->
+      case file_check(path, partial_hash_nb_bytes) do
+        {:new, {_path, _partial_hash, _size} = file_info} ->
+          emit(event_fn, %Events.FileNotYetInRepoFound{
+            import_id: import_id,
+            path: path
           })
 
-          {:ok, destination_path}
-        else
-          # Handle database insertion errors
-          {:error, changeset} when is_struct(changeset, Ecto.Changeset) ->
-            # Clean up the copied file since the database insertion failed
-            _ = File.rm(destination_path)
+          [file_info | acc]
 
-            emit(event_fn, %Events.ImportError{
-              import_id: import.id,
-              path: source_path,
-              reason: "Database insertion failed: #{inspect(changeset.errors)}"
-            })
+        :already_imported ->
+          emit(event_fn, %Events.FileAlreadyInRepoFound{
+            import_id: import_id,
+            path: path
+          })
 
-            {:error, "Database insertion failed: #{inspect(changeset.errors)}"}
+          acc
 
-          # Handle other errors from previous steps
-          {:error, reason} ->
-            emit(event_fn, %Events.ImportError{
-              import_id: import.id,
-              path: source_path,
-              reason: reason
-            })
+          # TODO. Ignored case for now, the app will crash if something happens.
+          #       To fix: do something with reason, emit another type of event, ...
+          # {:error, _reason} ->
+          #   emit(event_fn, %Events.FileAlreadyInRepoFound{
+          #     import_id: import_id,
+          #     path: path
+          #   })
 
-            {:error, reason}
-        end
+          #   acc
+      end
+    end)
+  end
+
+  defp file_check(path, nb_bytes) do
+    with {:ok, file_stat} <- File.stat(path),
+         true <- can_read_file(file_stat),
+         {:ok, partial_hash} <- Hasher.hash_file_first_bytes(path, nb_bytes) do
+      if PhotoOperations.photo_exists_by_partial_hash?(partial_hash) do
+        :already_imported
+      else
+        {:new, {path, partial_hash, file_stat.size}}
+      end
+    else
+      # just return well formed errors as is:
+      {:error, _reason} = e ->
+        e
+    end
+  end
+
+  defp can_read_file(%File.Stat{access: access}) when access in [:read, :read_write], do: true
+  defp can_read_file(%File.Stat{}), do: false
+
+  defp import_file(import, repo_base_dir, path, partial_hash, size, event_fn) do
+    # Continue with import since it's a new file
+    emit(event_fn, %Events.FileImporting{
+      import_id: import.id,
+      path: path
+    })
+
+    with {:ok, metadata} <- Metadata.read(path) do
+      destination_dir = get_destination_dir(repo_base_dir, metadata)
+      new_filename = generate_filename(path, partial_hash)
+      destination_path = Path.join(destination_dir, new_filename)
+
+      with :ok <- ensure_directory(destination_dir),
+           :ok <- copy_file(path, destination_path),
+           # Handle database insertion result properly
+           {:ok, _photo} <-
+             PhotoOperations.insert_from_metadata(
+               import,
+               metadata,
+               new_filename,
+               Path.basename(destination_dir),
+               partial_hash,
+               size
+             ) do
+        emit(event_fn, %Events.FileImported{
+          import_id: import.id,
+          path: path
+        })
+
+        {:ok, destination_path}
+      else
+        # Handle database insertion errors
+        {:error, changeset} when is_struct(changeset, Ecto.Changeset) ->
+          # Clean up the copied file since the database insertion failed
+          _ = File.rm(destination_path)
+
+          emit(event_fn, %Events.FileImportError{
+            import_id: import.id,
+            path: path,
+            reason: "Database insertion failed: #{inspect(changeset.errors)}"
+          })
+
+          {:error, "Database insertion failed: #{inspect(changeset.errors)}"}
+
+        # Handle other errors from previous steps
+        {:error, reason} ->
+          emit(event_fn, %Events.FileImportError{
+            import_id: import.id,
+            path: path,
+            reason: reason
+          })
+
+          {:error, reason}
       end
     else
       {:error, reason} ->
-        emit(event_fn, %Events.ImportError{
+        emit(event_fn, %Events.FileImportError{
           import_id: import.id,
-          path: source_path,
-          reason: reason
+          path: path,
+          reason: "Failed to read the file's metadata: #{inspect(reason)}"
         })
-
-        {:error, reason}
     end
   end
 
@@ -217,7 +230,7 @@ defmodule Photor.Imports.Importer do
     end
   end
 
-  defp copy_file(source, destination, opts) do
+  defp copy_file(source, destination, opts \\ []) do
     copy_strategy = Keyword.get(opts, :copy_strategy, :copy)
     overwrite = Keyword.get(opts, :overwrite, false)
 

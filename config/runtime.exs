@@ -21,7 +21,11 @@ if System.get_env("PHX_SERVER") do
 end
 
 if config_env() in [:dev, :prod] do
-  config :photor, photor_dir: System.fetch_env!("PHOTOR_DIR")
+  config :photor,
+    photor_dir: System.fetch_env!("PHOTOR_DIR"),
+    partial_hash_nb_bytes:
+      System.get_env("PHOTOR_PARTIAL_HASH_NB_BYTES", Integer.to_string(512 * 1024))
+
   config :photor, Photor.Repo, database: Path.join(System.fetch_env!("PHOTOR_DIR"), "db.sqlite")
 end
 

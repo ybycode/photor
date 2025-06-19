@@ -1,3 +1,21 @@
+defmodule Photor.Imports.ImportSessionState do
+  defstruct [
+    :import_id,
+    :import_status,
+    # Map of path => FileImport struct
+    :files,
+    :bytes_to_import,
+    :bytes_imported,
+    :nb_files,
+    :nb_files_skipped,
+    :nb_files_imported,
+    :nb_files_to_import,
+    :current_file_path,
+    :started_at,
+    :last_event_id
+  ]
+end
+
 defmodule Photor.Imports.ImportSession do
   @moduledoc """
   GenServer that tracks the state of a single import session.
@@ -9,6 +27,7 @@ defmodule Photor.Imports.ImportSession do
   alias Photor.Imports.FileImport
   alias Photor.Imports.Import
   alias Photor.Imports.ImportRegistry
+  alias Photor.Imports.ImportSessionState
   alias Phoenix.PubSub
 
   @pubsub_name Photor.PubSub
@@ -54,7 +73,7 @@ defmodule Photor.Imports.ImportSession do
 
   # helper
 
-  defp make_import_info(state), do: Map.delete(state, :files)
+  defp make_import_info(state), do: Map.from_struct(state) |> Map.delete(:files)
 
   # Server callbacks
 
@@ -65,18 +84,18 @@ defmodule Photor.Imports.ImportSession do
     # Register with the registry
     ImportRegistry.register_session(import.id)
 
-    state = %{
+    state = %ImportSessionState{
       import_id: import.id,
       import_status: :starting,
-      total_number_of_files: 0,
-      files_skipped: 0,
-      files_imported: 0,
       # Map of path => FileImport struct
       files: %{},
+      bytes_to_import: 0,
+      bytes_imported: 0,
+      nb_files: 0,
+      nb_files_skipped: 0,
+      nb_files_imported: 0,
+      nb_files_to_import: 0,
       current_file_path: nil,
-      total_bytes: 0,
-      imported_bytes: 0,
-      skipped_bytes: 0,
       started_at: import.started_at,
       last_event_id: 0
     }
@@ -92,9 +111,8 @@ defmodule Photor.Imports.ImportSession do
 
   @impl true
   def handle_call({:event, event}, _from, state) do
-    new_state =
-      process_import_event(event, state)
-      |> update_in([:last_event_id], &(&1 + 1))
+    s = process_import_event(event, state)
+    new_state = update_in(s.last_event_id, &(&1 + 1))
 
     broadcast({:import_update, state.import_id, make_import_info(new_state)})
 
@@ -103,7 +121,7 @@ defmodule Photor.Imports.ImportSession do
 
   # Event handlers
 
-  defp process_import_event(%Events.ImportStarted{}, state) do
+  defp process_import_event(%Events.NewImport{}, state) do
     %{state | import_status: :started}
   end
 
@@ -124,52 +142,76 @@ defmodule Photor.Imports.ImportSession do
       end)
       |> Map.new()
 
-    # Calculate total bytes to import
-    total_bytes =
-      Enum.reduce(files, state.total_bytes, fn %{bytesize: size}, acc ->
-        acc + size
+    # the new files are merged with the existing ones, and in case the path
+    # already exists, the existing value is kept, the new one is discarded, so
+    # that import data regarding this file is not lost.
+    s =
+      update_in(state.files, fn state_files ->
+        Map.merge(state_files, files_map, fn _path, state_file, _new_file ->
+          state_file
+        end)
       end)
 
-    %{
-      state
-      | # TODO: this scraps the previous files instead of adding to it.
-        files: files_map,
-        total_number_of_files: state.total_number_of_files + length(files),
-        total_bytes: total_bytes,
-        # TODO: at this point the scanning is done, so this needs changing.
-        import_status: :scanning
-    }
+    nb_files = Map.keys(s.files) |> length
+    Map.put(s, :nb_files, nb_files)
   end
 
-  defp process_import_event(%Events.FileSkipped{path: path}, state) do
-    # Update the status of the file to :skipped
+  defp process_import_event(%Events.ScanStarted{}, state) do
+    %{state | import_status: :scanning}
+  end
+
+  defp process_import_event(%Events.FileNotYetInRepoFound{path: path}, state) do
     {file_import, state} =
       get_and_update_in(state.files[path], fn file_import ->
-        fi = %{file_import | status: :skipped}
+        fi = %{file_import | status: :to_import}
         {fi, fi}
       end)
 
     %{
       state
-      | files_skipped: state.files_skipped + 1,
-        skipped_bytes: state.skipped_bytes + file_import.bytesize
+      | nb_files_to_import: state.nb_files_to_import + 1,
+        bytes_to_import: state.bytes_to_import + file_import.bytesize
+    }
+  end
+
+  defp process_import_event(%Events.FileAlreadyInRepoFound{path: path}, state) do
+    # Update the status of the file to :skipped
+    state =
+      update_in(state.files[path], fn file_import ->
+        %{file_import | status: :skipped}
+      end)
+
+    %{
+      state
+      | nb_files_skipped: state.nb_files_skipped + 1
+    }
+  end
+
+  defp process_import_event(
+         %Events.ImportStarted{
+           nb_files_to_import: nb_files_to_import,
+           bytes_to_import: bytes_to_import
+         },
+         state
+       ) do
+    %{
+      state
+      | import_status: :files_import,
+        nb_files_to_import: nb_files_to_import,
+        bytes_to_import: bytes_to_import
     }
   end
 
   defp process_import_event(%Events.FileImporting{path: path}, state) do
     # Update the status of the file to :ongoing
 
-    {file_import, state} =
+    {file_import, new_state} =
       get_and_update_in(state.files[path], fn file_import ->
-        fi = %{file_import | status: :ongoing}
+        fi = %{file_import | status: :importing}
         {fi, fi}
       end)
 
-    %{
-      state
-      | current_file_path: file_import.path,
-        import_status: :importing
-    }
+    %{new_state | current_file_path: file_import.path}
   end
 
   defp process_import_event(%Events.FileImported{path: path}, state) do
@@ -183,24 +225,19 @@ defmodule Photor.Imports.ImportSession do
 
     %{
       state
-      | imported_bytes: state.imported_bytes + (file_import.bytesize || 0),
-        files_imported: state.files_imported + 1,
-        current_file_path: nil
+      | bytes_imported: state.bytes_imported + (file_import.bytesize || 0),
+        nb_files_imported: state.nb_files_imported + 1
     }
   end
 
-  defp process_import_event(%Events.ImportError{path: path, reason: _reason}, state) do
+  defp process_import_event(%Events.FileImportError{path: path, reason: _reason}, state) do
     # Update the status of the file to :error
     new_files =
       update_in(state.files[path], fn file_import ->
         %{file_import | status: :error}
       end)
 
-    %{
-      state
-      | files: new_files,
-        current_file_path: nil
-    }
+    %{state | files: new_files}
   end
 
   defp process_import_event(%Events.ImportFinished{}, state) do

@@ -41,29 +41,33 @@ defmodule PhotorWeb.ImportLive.Index do
                 </div>
 
                 <div class="flex justify-between">
-                  <span class="text-gray-500">Current file:</span>
-                  <span class="truncate max-w-md">
-                    <%= if import.current_file_path do %>
-                      {import.current_file_path}
-                    <% else %>
-                      -
-                    <% end %>
-                  </span>
+                  <span class="text-gray-500">Media files in directory:</span>
+                  <span>{import.nb_files}</span>
                 </div>
 
                 <div class="flex justify-between">
-                  <span class="text-gray-500">Files:</span>
+                  <span class="text-gray-500">
+                    Search for new files: {progress_new_files_search(import)}%
+                  </span>
                   <span>
-                    {import.files_imported} imported / {import.files_skipped} skipped / {import.total_number_of_files} total
+                    {import.nb_files_skipped} already in repo / {import.nb_files_to_import} new to import
                   </span>
                 </div>
 
+                <div class="mt-2">
+                  <div class="w-full bg-gray-200 rounded-full h-2.5">
+                    <div
+                      class="bg-blue-600 h-2.5 rounded-full"
+                      style={"width: #{progress_new_files_search(import)}%"}
+                    >
+                    </div>
+                  </div>
+                </div>
+
                 <div class="flex justify-between">
-                  <span class="text-gray-500">Progress:</span>
+                  <span class="text-gray-500">Import:</span>
                   <span>
-                    {format_bytes(import.imported_bytes + import.skipped_bytes)} / {format_bytes(
-                      import.total_bytes
-                    )}
+                    {format_bytes(import.bytes_imported)} / {format_bytes(import.bytes_to_import)}
                   </span>
                 </div>
 
@@ -75,6 +79,17 @@ defmodule PhotorWeb.ImportLive.Index do
                     >
                     </div>
                   </div>
+                </div>
+
+                <div class="flex justify-between">
+                  <span class="text-gray-500">Current file:</span>
+                  <span class="truncate [direction:rtl] [text-align:left] max-w-md">
+                    <%= if import.current_file_path do %>
+                      {import.current_file_path}
+                    <% else %>
+                      -
+                    <% end %>
+                  </span>
                 </div>
               </div>
             </div>
@@ -114,9 +129,18 @@ defmodule PhotorWeb.ImportLive.Index do
     end
   end
 
+  defp progress_new_files_search(import) do
+    if import.nb_files > 0 do
+      ((import.nb_files_skipped + import.nb_files_to_import) / import.nb_files * 100)
+      |> Float.round(1)
+    else
+      0
+    end
+  end
+
   defp progress_percentage(import) do
-    if import.total_bytes > 0 do
-      percentage = (import.imported_bytes + import.skipped_bytes) / import.total_bytes * 100
+    if import.bytes_to_import > 0 do
+      percentage = import.bytes_imported / import.bytes_to_import * 100
       Float.round(percentage, 1)
     else
       0

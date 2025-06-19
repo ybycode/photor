@@ -2,7 +2,7 @@ defmodule Photor.Imports.Events do
   @moduledoc """
   Defines event structs for import operations.
   """
-  defmodule ImportStarted do
+  defmodule NewImport do
     defstruct [:import_id, :started_at, :source_dir]
   end
 
@@ -10,7 +10,24 @@ defmodule Photor.Imports.Events do
     defstruct [:import_id, :files]
   end
 
-  defmodule FileSkipped do
+  defmodule ScanStarted do
+    defstruct [:import_id]
+  end
+
+  defmodule ImportStarted do
+    defstruct [
+      :import_id,
+      :nb_files_to_import,
+      :bytes_to_import
+    ]
+  end
+
+  defmodule FileNotYetInRepoFound do
+    # TODO: find a better name, or rename the FilesFound event.
+    defstruct [:import_id, :path]
+  end
+
+  defmodule FileAlreadyInRepoFound do
     defstruct [:import_id, :path]
   end
 
@@ -26,16 +43,10 @@ defmodule Photor.Imports.Events do
   end
 
   defmodule ImportFinished do
-    defstruct [
-      :import_id,
-      :total_files,
-      :skipped_count,
-      :imported_count,
-      :imported_bytes
-    ]
+    defstruct [:import_id]
   end
 
-  defmodule ImportError do
+  defmodule FileImportError do
     defstruct [
       :import_id,
       :path,

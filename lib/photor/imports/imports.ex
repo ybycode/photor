@@ -25,9 +25,10 @@ defmodule Photor.Imports do
       {:ok, _pid} ->
         # Start the import process in a separate task
         Task.start(fn ->
-          Importer.import_directory(import, source_dir, [], fn event ->
-            ImportSession.process_event(import.id, event)
-          end)
+          :ok =
+            Importer.import_directory(import, source_dir, [], fn event ->
+              ImportSession.process_event(import.id, event)
+            end)
         end)
 
         {:ok, import}

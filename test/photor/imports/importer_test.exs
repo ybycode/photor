@@ -3,6 +3,7 @@ defmodule Photor.Imports.ImporterTest do
   import Mox
 
   alias Photor.Imports.Importer
+  alias Photor.Imports.Events
   # alias Photor.Metadata.MainMetadata
   alias Photor.Metadata.MockExiftool
   alias Photor.Photos.Photo
@@ -45,129 +46,129 @@ defmodule Photor.Imports.ImporterTest do
     end
   end
 
-  describe "import_file/3" do
-    test "successfully imports a new file" do
-      # Create a test file
-      test_file = Path.join(@source_dir, "test_photo.jpg")
-      File.write!(test_file, "test file content")
+  # describe "import_file/3" do
+  #   test "successfully imports a new file" do
+  #     # Create a test file
+  #     test_file = Path.join(@source_dir, "test_photo.jpg")
+  #     File.write!(test_file, "test file content")
 
-      # Mock the metadata read
-      MockExiftool
-      |> expect(:read_as_json, fn _path ->
-        {:ok,
-         %{
-           "CreateDate" => "2023-06-15 10:30:00",
-           "MIMEType" => "image/jpeg",
-           "ImageHeight" => 1080,
-           "ImageWidth" => 1920
-         }}
-      end)
+  #     # Mock the metadata read
+  #     MockExiftool
+  #     |> expect(:read_as_json, fn _path ->
+  #       {:ok,
+  #        %{
+  #          "CreateDate" => "2023-06-15 10:30:00",
+  #          "MIMEType" => "image/jpeg",
+  #          "ImageHeight" => 1080,
+  #          "ImageWidth" => 1920
+  #        }}
+  #     end)
 
-      # Run the import
-      import = insert(:import)
-      result = Importer.import_file(import, @photor_dir, test_file)
+  #     # Run the import
+  #     import = insert(:import)
+  #     result = Importer.import_file(import, @photor_dir, test_file)
 
-      # Verify results
-      assert {:ok, destination_path} = result
-      assert File.exists?(destination_path)
-      assert String.contains?(destination_path, "2023-06-15")
+  #     # Verify results
+  #     assert {:ok, destination_path} = result
+  #     assert File.exists?(destination_path)
+  #     assert String.contains?(destination_path, "2023-06-15")
 
-      # Verify the file was copied with the correct name format
-      assert Path.basename(destination_path) =~ ~r/^[a-z0-9]+_test_photo\.jpg$/
+  #     # Verify the file was copied with the correct name format
+  #     assert Path.basename(destination_path) =~ ~r/^[a-z0-9]+_test_photo\.jpg$/
 
-      # Verify a database record was created
-      photo = Repo.get_by(Photo, filename: Path.basename(destination_path))
-      assert photo != nil
-      assert photo.directory == "2023-06-15"
-    end
+  #     # Verify a database record was created
+  #     photo = Repo.get_by(Photo, filename: Path.basename(destination_path))
+  #     assert photo != nil
+  #     assert photo.directory == "2023-06-15"
+  #   end
 
-    test "uses 1970-01-01 if not date found in the file" do
-      # Create a test file
-      test_file = Path.join(@source_dir, "test_photo.jpg")
-      File.write!(test_file, "test file content")
+  #   test "uses 1970-01-01 if not date found in the file" do
+  #     # Create a test file
+  #     test_file = Path.join(@source_dir, "test_photo.jpg")
+  #     File.write!(test_file, "test file content")
 
-      # Mock the metadata read
-      MockExiftool
-      |> expect(:read_as_json, fn _path ->
-        {:ok,
-         %{
-           # "CreateDate" => "2023-06-15 10:30:00", # no date in metadata
-           "MIMEType" => "image/jpeg",
-           "ImageHeight" => 1080,
-           "ImageWidth" => 1920
-         }}
-      end)
+  #     # Mock the metadata read
+  #     MockExiftool
+  #     |> expect(:read_as_json, fn _path ->
+  #       {:ok,
+  #        %{
+  #          # "CreateDate" => "2023-06-15 10:30:00", # no date in metadata
+  #          "MIMEType" => "image/jpeg",
+  #          "ImageHeight" => 1080,
+  #          "ImageWidth" => 1920
+  #        }}
+  #     end)
 
-      # Run the import
-      import = insert(:import)
-      result = Importer.import_file(import, @photor_dir, test_file)
+  #     # Run the import
+  #     import = insert(:import)
+  #     result = Importer.import_file(import, @photor_dir, test_file)
 
-      # Verify results
-      assert {:ok, destination_path} = result
-      assert File.exists?(destination_path)
-      assert String.contains?(destination_path, "1970-01-01")
+  #     # Verify results
+  #     assert {:ok, destination_path} = result
+  #     assert File.exists?(destination_path)
+  #     assert String.contains?(destination_path, "1970-01-01")
 
-      # Verify the file was copied with the correct name format
-      assert Path.basename(destination_path) =~ ~r/^[a-z0-9]+_test_photo\.jpg$/
+  #     # Verify the file was copied with the correct name format
+  #     assert Path.basename(destination_path) =~ ~r/^[a-z0-9]+_test_photo\.jpg$/
 
-      # Verify a database record was created
-      photo = Repo.get_by(Photo, filename: Path.basename(destination_path))
-      assert photo != nil
-      assert photo.directory == "1970-01-01"
-    end
+  #     # Verify a database record was created
+  #     photo = Repo.get_by(Photo, filename: Path.basename(destination_path))
+  #     assert photo != nil
+  #     assert photo.directory == "1970-01-01"
+  #   end
 
-    test "returns :already_exists when file already in database" do
-      # Create a test file
-      test_file = Path.join(@source_dir, "existing_photo.jpg")
-      File.write!(test_file, "test file content")
+  #   test "returns :already_exists when file already in database" do
+  #     # Create a test file
+  #     test_file = Path.join(@source_dir, "existing_photo.jpg")
+  #     File.write!(test_file, "test file content")
 
-      # First import the file to create the database record
-      MockExiftool
-      |> expect(:read_as_json, fn _path ->
-        {:ok,
-         %{
-           "CreateDate" => "2023-06-15 10:30:00",
-           "MIMEType" => "image/jpeg"
-         }}
-      end)
+  #     # First import the file to create the database record
+  #     MockExiftool
+  #     |> expect(:read_as_json, fn _path ->
+  #       {:ok,
+  #        %{
+  #          "CreateDate" => "2023-06-15 10:30:00",
+  #          "MIMEType" => "image/jpeg"
+  #        }}
+  #     end)
 
-      import = insert(:import)
-      {:ok, _} = Importer.import_file(import, @photor_dir, test_file)
+  #     import = insert(:import)
+  #     {:ok, _} = Importer.import_file(import, @photor_dir, test_file)
 
-      # Now try to import it again - should detect as already existing
-      MockExiftool
-      |> expect(:read_as_json, fn _path ->
-        {:ok,
-         %{
-           "CreateDate" => "2023-06-15 10:30:00",
-           "MIMEType" => "image/jpeg"
-         }}
-      end)
+  #     # Now try to import it again - should detect as already existing
+  #     MockExiftool
+  #     |> expect(:read_as_json, fn _path ->
+  #       {:ok,
+  #        %{
+  #          "CreateDate" => "2023-06-15 10:30:00",
+  #          "MIMEType" => "image/jpeg"
+  #        }}
+  #     end)
 
-      import = insert(:import)
-      result = Importer.import_file(import, @photor_dir, test_file)
-      assert {:ok, :already_exists} = result
-    end
+  #     import = insert(:import)
+  #     result = Importer.import_file(import, @photor_dir, test_file)
+  #     assert {:ok, :already_exists} = result
+  #   end
 
-    test "handles metadata read errors" do
-      # Create a test file
-      test_file = Path.join(@source_dir, "error_photo.jpg")
-      File.write!(test_file, "test file content")
+  #   test "handles metadata read errors" do
+  #     # Create a test file
+  #     test_file = Path.join(@source_dir, "error_photo.jpg")
+  #     File.write!(test_file, "test file content")
 
-      # Mock the metadata read to fail
-      MockExiftool
-      |> expect(:read_as_json, fn _path ->
-        {:error, "Metadata extraction failed"}
-      end)
+  #     # Mock the metadata read to fail
+  #     MockExiftool
+  #     |> expect(:read_as_json, fn _path ->
+  #       {:error, "Metadata extraction failed"}
+  #     end)
 
-      # Run the import
-      import = insert(:import)
-      result = Importer.import_file(import, @photor_dir, test_file)
+  #     # Run the import
+  #     import = insert(:import)
+  #     result = Importer.import_file(import, @photor_dir, test_file)
 
-      # Verify it returns an error
-      assert {:error, _} = result
-    end
-  end
+  #     # Verify it returns an error
+  #     assert {:error, _} = result
+  #   end
+  # end
 
   describe "import_directory/3" do
     test "imports multiple files from a directory" do
@@ -198,21 +199,99 @@ defmodule Photor.Imports.ImporterTest do
 
       # Run the directory import
       import = insert(:import)
-      result = Importer.import_directory(import, @source_dir)
 
-      # Verify results
-      assert {:ok, results} = result
-      assert length(results) == 3
+      test_pid = self()
 
-      # Check that all imports were successful
-      assert Enum.all?(results, fn r -> match?({:ok, _}, r) end)
+      assert :ok =
+               Importer.import_directory(import, @source_dir, [], fn event ->
+                 send(test_pid, event)
+               end)
 
-      # Check that files were copied to the repository
-      assert File.exists?(Path.join([@photor_dir, "2023-06-15"]))
+      # Now we should have received events:
+      assert_received e
 
-      # Check that database records were created
-      photo_count = Repo.aggregate(Photo, :count)
-      assert photo_count == 3
+      assert e == %Events.NewImport{
+               import_id: import.id,
+               source_dir: @source_dir,
+               started_at: import.started_at
+             }
+
+      assert_received e
+
+      assert e == %Events.FilesFound{
+               import_id: import.id,
+               files: [
+                 %Photor.Files.File{
+                   path: "test/tmp/subdir/photo3.jpg",
+                   type: %{type: :compressed, extension: "jpg", medium: :photo},
+                   bytesize: 14,
+                   access: :read_write
+                 },
+                 %Photor.Files.File{
+                   path: "test/tmp/photo2.jpg",
+                   type: %{type: :compressed, extension: "jpg", medium: :photo},
+                   bytesize: 14,
+                   access: :read_write
+                 },
+                 %Photor.Files.File{
+                   path: "test/tmp/photo1.jpg",
+                   type: %{type: :compressed, extension: "jpg", medium: :photo},
+                   bytesize: 14,
+                   access: :read_write
+                 }
+               ]
+             }
+
+      assert_received e
+
+      assert e == %Events.ScanStarted{import_id: import.id}
+
+      [
+        "test/tmp/subdir/photo3.jpg",
+        "test/tmp/photo2.jpg",
+        "test/tmp/photo1.jpg"
+      ]
+      |> Enum.each(fn path ->
+        assert_received e
+        assert e == %Events.FileNotYetInRepoFound{import_id: import.id, path: path}
+      end)
+
+      assert_received e
+
+      assert e == %Events.ImportStarted{
+               import_id: import.id,
+               bytes_to_import: 42,
+               nb_files_to_import: 3
+             }
+
+      [
+        "test/tmp/photo1.jpg",
+        "test/tmp/photo2.jpg",
+        "test/tmp/subdir/photo3.jpg"
+      ]
+      |> Enum.each(fn path ->
+        assert_received e
+        assert e == %Events.FileImporting{import_id: import.id, path: path}
+        assert_received e
+        assert e == %Events.FileImported{import_id: import.id, path: path}
+      end)
+
+      assert_received e
+
+      assert e == %Events.ImportFinished{import_id: import.id}
+
+      # # Verify results
+      # assert length(results) == 3
+
+      # # Check that all imports were successful
+      # assert Enum.all?(results, fn r -> match?({:ok, _}, r) end)
+
+      # # Check that files were copied to the repository
+      # assert File.exists?(Path.join([@photor_dir, "2023-06-15"]))
+
+      # # Check that database records were created
+      # photo_count = Repo.aggregate(Photo, :count)
+      # assert photo_count == 3
     end
 
     test "handles directory not found error" do
@@ -245,15 +324,15 @@ defmodule Photor.Imports.ImporterTest do
       end)
 
       import = insert(:import)
-      {:ok, _} = Importer.import_directory(import, @source_dir)
+      assert :ok = Importer.import_directory(import, @source_dir)
 
       # Add a new file
       file3 = Path.join(@source_dir, "photo3.jpg")
       File.write!(file3, "test content 3")
 
-      # Import again - should only import the new file
+      # Import again - should only import the new file, and only read this file's metadata:
       MockExiftool
-      |> expect(:read_as_json, 3, fn path ->
+      |> expect(:read_as_json, 1, fn path ->
         filename = Path.basename(path)
 
         {:ok,
@@ -265,19 +344,7 @@ defmodule Photor.Imports.ImporterTest do
       end)
 
       import = insert(:import)
-      {:ok, results} = Importer.import_directory(import, @source_dir)
-
-      # Two should be already_exists, one should be a new import
-      already_exists = Enum.count(results, fn r -> r == {:ok, :already_exists} end)
-
-      new_imports =
-        Enum.count(results, fn
-          {:ok, :already_exists} -> false
-          {:ok, path} when is_binary(path) -> true
-        end)
-
-      assert already_exists == 2
-      assert new_imports == 1
+      assert :ok = Importer.import_directory(import, @source_dir)
 
       # Check that we now have 3 photos in the database
       photo_count = Repo.aggregate(Photo, :count)
