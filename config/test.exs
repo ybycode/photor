@@ -2,7 +2,11 @@ import Config
 
 # Configure your database
 config :photor, Photor.Repo,
-  database: Path.expand("../test/photos_repo/photor.sqlite", __DIR__),
+  # in tests the db file is set in another directory than where the
+  # photos are stored. This allows tests to remove files on disk without
+  # deleting the db, easily. The db is cleaned up by test transctions
+  # anyway.
+  database: Path.expand("../test/photos_repo_db/photor.sqlite", __DIR__),
   pool_size: 5,
   pool: Ecto.Adapters.SQL.Sandbox
 
@@ -21,7 +25,7 @@ config :phoenix, :plug_init_mode, :runtime
 
 config :photor,
   photor_dir: "test/photos_repo",
-  partial_hash_nb_bytes: 512 * 1024
+  partial_hash_nb_bytes: Integer.to_string(512 * 1024)
 
 # Enable helpful, but potentially expensive runtime checks
 config :phoenix_live_view,

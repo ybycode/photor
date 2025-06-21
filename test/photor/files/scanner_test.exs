@@ -54,7 +54,7 @@ defmodule Photor.Files.ScannerTest do
 
       assert %File_{
                path: _,
-               type: %{type: :compressed, extension: "JPG", medium: :photo},
+               type: %{type: :compressed, extension: "jpg", medium: :photo},
                bytesize: 4,
                access: :read_write
              } = file1

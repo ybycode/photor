@@ -27,7 +27,12 @@ defmodule Photor.Files.Scanner do
     types = Keyword.get(opts, :types, nil)
 
     if File.dir?(directory) do
-      files = do_scan_directory(directory, recursive, types)
+      files =
+        do_scan_directory(directory, recursive, types)
+        # files are sorted by path so that the output is cleaner, and it's
+        # consistent for tests.
+        |> Enum.sort_by(& &1.path)
+
       {:ok, files}
     else
       {:error, "Not a directory: #{directory}"}

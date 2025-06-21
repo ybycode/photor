@@ -187,19 +187,8 @@ defmodule Photor.Imports.ImportSession do
     }
   end
 
-  defp process_import_event(
-         %Events.ImportStarted{
-           nb_files_to_import: nb_files_to_import,
-           bytes_to_import: bytes_to_import
-         },
-         state
-       ) do
-    %{
-      state
-      | import_status: :files_import,
-        nb_files_to_import: nb_files_to_import,
-        bytes_to_import: bytes_to_import
-    }
+  defp process_import_event(%Events.ImportStarted{}, state) do
+    %{state | import_status: :files_import}
   end
 
   defp process_import_event(%Events.FileImporting{path: path}, state) do

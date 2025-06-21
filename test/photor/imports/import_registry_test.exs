@@ -12,7 +12,7 @@ defmodule Photor.Imports.ImportRegistryTest do
   end
 
   describe "register_session/2, lookup_session/2, list_sessions/2 in one go" do
-    test "register_session/2" do
+    test "work" do
       # 2 processes are created, which register themselves to the registry
       # under the names agent-1 and agent-2:
       [pid1, pid2] =

@@ -1,19 +1,12 @@
 defmodule Photor.Imports.ImportSessionTest do
   use Photor.DataCase
-  import Mox
 
   alias Photor.Imports.Events
-  alias Photor.Imports.Importer
   alias Photor.Imports.ImportSession
   alias Photor.Imports.ImportSessionState
-  alias Photor.Metadata.MockExiftool
+  alias Photor.TestHelpers
 
   import Photor.Factory
-
-  setup :verify_on_exit!
-
-  @photor_dir Application.compile_env!(:photor, :photor_dir)
-  @source_dir "test/tmp/"
 
   setup do
     import = insert(:import)
@@ -28,75 +21,9 @@ defmodule Photor.Imports.ImportSessionTest do
   end
 
   defp setup_fetch_import_events(%{import: import}) do
-    cleanup_directories()
-    events = import_and_record_events(import)
+    events = TestHelpers.expected_events(import)
 
     {:ok, events: events}
-  end
-
-  defp cleanup_directories() do
-    # Create temp directories for tests
-    File.mkdir_p!(@source_dir)
-
-    on_exit(fn ->
-      File.rm_rf!(@source_dir)
-
-      [
-        "1970-01-01",
-        "2023-06-15"
-      ]
-      |> Enum.each(fn date ->
-        Path.join(@photor_dir, date)
-        |> File.rm_rf!()
-      end)
-    end)
-  end
-
-  defp import_and_record_events(import) do
-    # Create test files
-    file1 = Path.join(@source_dir, "photo1.jpg")
-    file2 = Path.join(@source_dir, "photo2.jpg")
-    File.write!(file1, "test content 1")
-    File.write!(file2, "test content 2")
-
-    # Create a subdirectory with a file
-    subdir = Path.join(@source_dir, "subdir")
-    File.mkdir_p!(subdir)
-    file3 = Path.join(subdir, "photo3.jpg")
-    File.write!(file3, "test content 3")
-
-    # Mock the metadata read for each file
-    MockExiftool
-    |> expect(:read_as_json, 3, fn path ->
-      filename = Path.basename(path)
-
-      {:ok,
-       %{
-         "FileName" => filename,
-         "CreateDate" => "2023-06-15 10:30:00",
-         "MIMEType" => "image/jpeg"
-       }}
-    end)
-
-    # run the import and collect all events, to replay them manually to our genserver:
-    test_pid = self()
-
-    # run an import to receive all events:
-    assert :ok =
-             Importer.import_directory(import, @source_dir, [], fn event ->
-               send(test_pid, event)
-             end)
-
-    # read how many events were received:
-    nb_events_received = Process.info(self())[:message_queue_len]
-
-    # fetch and return all messages (events):
-
-    Enum.map(1..nb_events_received, fn _ ->
-      receive do
-        msg -> msg
-      end
-    end)
   end
 
   describe "get_import_info/1" do
@@ -107,7 +34,7 @@ defmodule Photor.Imports.ImportSessionTest do
                {:ok,
                 %{
                   started_at: import.started_at,
-                  import_id: 1,
+                  import_id: import.id,
                   import_status: :starting,
                   nb_files: 0,
                   nb_files_skipped: 0,
@@ -122,26 +49,26 @@ defmodule Photor.Imports.ImportSessionTest do
   end
 
   @files %{
-    "test/tmp/photo1.jpg" => %Photor.Imports.FileImport{
+    "test/assets/import_source/photo1.jpg" => %Photor.Imports.FileImport{
       access: :read_write,
       status: :todo,
       type: %{type: :compressed, extension: "jpg", medium: :photo},
-      path: "test/tmp/photo1.jpg",
-      bytesize: 14
+      path: "test/assets/import_source/photo1.jpg",
+      bytesize: 15
     },
-    "test/tmp/photo2.jpg" => %Photor.Imports.FileImport{
+    "test/assets/import_source/sub1/photo2.jpg" => %Photor.Imports.FileImport{
       access: :read_write,
       status: :todo,
       type: %{type: :compressed, extension: "jpg", medium: :photo},
-      path: "test/tmp/photo2.jpg",
-      bytesize: 14
+      path: "test/assets/import_source/sub1/photo2.jpg",
+      bytesize: 15
     },
-    "test/tmp/subdir/photo3.jpg" => %Photor.Imports.FileImport{
+    "test/assets/import_source/sub1/sub2/photo3.jpg" => %Photor.Imports.FileImport{
       access: :read_write,
       status: :todo,
       type: %{type: :compressed, extension: "jpg", medium: :photo},
-      path: "test/tmp/subdir/photo3.jpg",
-      bytesize: 14
+      path: "test/assets/import_source/sub1/sub2/photo3.jpg",
+      bytesize: 15
     }
   }
 
@@ -207,30 +134,35 @@ defmodule Photor.Imports.ImportSessionTest do
                     last_event_id: 3
                   } = s
          end},
-        {Events.FileNotYetInRepoFound, & &1},
+        {Events.FileAlreadyInRepoFound, & &1},
         {Events.FileNotYetInRepoFound, & &1},
         {Events.FileNotYetInRepoFound,
          fn s ->
-           assert Map.values(s.files) |> Enum.map(& &1.status) |> Enum.all?(&(&1 == :to_import))
-           assert s.nb_files_skipped == 0
-           assert s.nb_files_to_import == 3
+           # assert Map.values(s.files) |> Enum.map(& &1.status) |> Enum.all?(&(&1 == :to_import))
+           assert s.nb_files == 3
+           assert s.nb_files_skipped == 1
+           assert s.nb_files_to_import == 2
            assert s.nb_files_imported == 0
-           assert s.bytes_to_import == 42
+           assert s.bytes_to_import == 30
            assert s.bytes_imported == 0
            assert s.last_event_id == 6
          end},
         {Events.ImportStarted,
          fn s ->
+           assert s.nb_files == 3
+           assert s.nb_files_skipped == 1
+           assert s.nb_files_to_import == 2
            assert s.import_status == :files_import
            assert s.last_event_id == 7
          end},
         {Events.FileImporting,
          fn s ->
+           assert s.nb_files == 3
            assert s.import_status == :files_import
-           assert s.nb_files_skipped == 0
-           assert s.nb_files_to_import == 3
+           assert s.nb_files_skipped == 1
+           assert s.nb_files_to_import == 2
            assert s.nb_files_imported == 0
-           assert s.bytes_to_import == 42
+           assert s.bytes_to_import == 30
            assert s.bytes_imported == 0
            assert s.last_event_id == 8
            assert not is_nil(s.current_file_path)
@@ -238,27 +170,26 @@ defmodule Photor.Imports.ImportSessionTest do
         {Events.FileImported,
          fn s ->
            assert s.import_status == :files_import
-           assert s.nb_files_skipped == 0
-           assert s.nb_files_to_import == 3
+           assert s.nb_files == 3
+           assert s.nb_files_skipped == 1
+           assert s.nb_files_to_import == 2
            assert s.nb_files_imported == 1
-           assert s.bytes_to_import == 42
-           assert s.bytes_imported == 14
+           assert s.bytes_to_import == 30
+           assert s.bytes_imported == 15
            assert s.last_event_id == 9
            assert not is_nil(s.current_file_path)
          end},
         {Events.FileImporting, & &1},
         {Events.FileImported, & &1},
-        {Events.FileImporting, & &1},
-        {Events.FileImported, & &1},
         {Events.ImportFinished,
          fn s ->
            assert s.import_status == :finished
-           assert s.nb_files_skipped == 0
-           assert s.nb_files_to_import == 3
-           assert s.nb_files_imported == 3
-           assert s.bytes_to_import == 42
-           assert s.bytes_imported == 42
-           assert s.last_event_id == 14
+           assert s.nb_files_skipped == 1
+           assert s.nb_files_to_import == 2
+           assert s.nb_files_imported == 2
+           assert s.bytes_to_import == 30
+           assert s.bytes_imported == 30
+           assert s.last_event_id == 12
            assert is_nil(s.current_file_path)
          end}
       ])

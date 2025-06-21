@@ -45,3 +45,4 @@ result
 .env
 TODO.md
 test/photos_repo
+test/photos_repo_db/

@@ -15,11 +15,7 @@ defmodule Photor.Imports.Events do
   end
 
   defmodule ImportStarted do
-    defstruct [
-      :import_id,
-      :nb_files_to_import,
-      :bytes_to_import
-    ]
+    defstruct [:import_id]
   end
 
   defmodule FileNotYetInRepoFound do

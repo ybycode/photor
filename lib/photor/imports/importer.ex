@@ -57,17 +57,9 @@ defmodule Photor.Imports.Importer do
       })
 
       find_new_files(files, import.id, event_fn)
-      |> tap(fn new_files ->
-        {nb_files_to_import, bytes_to_import} =
-          Enum.reduce(new_files, {0, 0}, fn {_path, _partial_hash, bytesize},
-                                            {nb_files, nb_bytes} ->
-            {nb_files + 1, nb_bytes + bytesize}
-          end)
-
+      |> tap(fn _new_files ->
         emit(event_fn, %Events.ImportStarted{
-          import_id: import.id,
-          nb_files_to_import: nb_files_to_import,
-          bytes_to_import: bytes_to_import
+          import_id: import.id
         })
       end)
       |> Enum.each(fn {path, partial_hash, size} ->
