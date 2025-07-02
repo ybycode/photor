@@ -13,6 +13,8 @@ mkShell {
 
     # runtime dependency of the app:
     exiftool
+    imagemagick
+    mozjpeg
   ];
 
   PROJECT_ROOT = builtins.toString ./.;
