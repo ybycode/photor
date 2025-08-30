@@ -3,6 +3,7 @@ defmodule Photor.Photos.Photo do
   import Ecto.Changeset
   import Ecto.Query
 
+  alias Photor.Photos.Thumbnails.Thumbnail
   alias Photor.Metadata.MainMetadata
 
   schema "photos" do
@@ -29,6 +30,7 @@ defmodule Photor.Photos.Photo do
     field :create_day, :date
 
     belongs_to :import, Photor.Imports.Import
+    has_many :thumbnails, Thumbnail
 
     timestamps(updated_at: false)
   end
@@ -138,6 +140,25 @@ defmodule Photor.Photos.Photo do
   def query_of_day(day) do
     from(p in __MODULE__,
       where: p.create_day == ^day
+    )
+  end
+
+  def order_by_create_date(query) do
+    from(p in query,
+      order_by: p.create_date
+    )
+  end
+
+  def only_jpeg(query) do
+    from(p in query,
+      where: p.mime_type == "image/jpeg"
+    )
+  end
+
+  def load_thumbnails(query) do
+    from(p in query,
+      left_join: t in assoc(p, :thumbnails),
+      preload: [thumbnails: t]
     )
   end
 end

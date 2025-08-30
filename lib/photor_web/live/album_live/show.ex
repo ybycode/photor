@@ -1,10 +1,26 @@
 defmodule PhotorWeb.AlbumsLive.Show do
   use PhotorWeb, :live_view
 
+  alias Photor.Photos.Thumbnails
+
   def mount(%{"date" => date_str}, _session, socket) do
     case Date.from_iso8601(date_str) do
       {:ok, date} ->
-        photos = Photor.Photos.of_day(date)
+        photos =
+          Photor.Photos.of_day(date)
+          |> Enum.map(fn photo ->
+            Enum.reduce(photo.thumbnails, %{small: nil, medium: nil, large: nil}, fn thumbnail,
+                                                                                     acc ->
+              url =
+                Path.join(
+                  "/photos",
+                  Thumbnails.make_thumbnail_path(photo, thumbnail)
+                )
+
+              Map.put(acc, String.to_existing_atom(thumbnail.size_name), url)
+            end)
+          end)
+
         {:ok, assign(socket, date: date_str, photos: photos, previewed_photo_index: nil)}
 
       {:error, _} ->
@@ -14,9 +30,7 @@ defmodule PhotorWeb.AlbumsLive.Show do
 
   def photo_url_preview(photos, photo_index) do
     photo = Enum.at(photos, photo_index)
-    preview_filename = String.replace_suffix(photo.filename, ".jpg", "_thumbnail_800px.jpg")
-    create_date_str = Date.to_iso8601(photo.create_date)
-    Path.join(["/photos", create_date_str, preview_filename])
+    photo.large
   end
 
   def handle_event("open-preview", %{"photo-index" => photo_index}, socket) do

@@ -14,10 +14,20 @@ defmodule Photor.Application do
        repos: Application.fetch_env!(:photor, :ecto_repos), skip: skip_migrations?()},
       {DNSCluster, query: Application.get_env(:photor, :dns_cluster_query) || :ignore},
       {Phoenix.PubSub, name: Photor.PubSub},
+
       # Start the Import Registry
       {Registry, keys: :unique, name: Photor.Imports.ImportRegistry},
+
       # Start the Import Supervisor
       {Photor.Imports.ImportSupervisor, []},
+
+      # Start the jobs supervisor and runner:
+      {Task.Supervisor, name: Photor.Jobs.WorkersSupervisor},
+      {Photor.Jobs.JobsRunner, [supervisor_name: Photor.Jobs.WorkersSupervisor]},
+
+      # Start the thumbnails generator supervisor:
+      {Task.Supervisor, name: Photor.Photos.Thumbnails.Supervisor},
+
       # Start to serve requests, typically the last entry
       PhotorWeb.Endpoint
     ]

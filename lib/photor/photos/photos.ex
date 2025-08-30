@@ -6,5 +6,11 @@ defmodule Photor.Photos do
 
   def last_day(), do: Photo.query_last_day() |> Repo.one()
 
-  def of_day(day), do: Photo.query_of_day(day) |> Repo.all()
+  def of_day(day),
+    do:
+      Photo.query_of_day(day)
+      |> Photo.order_by_create_date()
+      |> Photo.only_jpeg()
+      |> Photo.load_thumbnails()
+      |> Repo.all()
 end

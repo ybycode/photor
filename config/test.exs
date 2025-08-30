@@ -4,9 +4,9 @@ import Config
 config :photor, Photor.Repo,
   # in tests the db file is set in another directory than where the
   # photos are stored. This allows tests to remove files on disk without
-  # deleting the db, easily. The db is cleaned up by test transctions
+  # deleting the db, easily. The db is cleaned up by test transactions
   # anyway.
-  database: Path.expand("../test/photos_repo_db/photor.sqlite", __DIR__),
+  database: Path.expand("../test/photos_repo_db/db.sqlite", __DIR__),
   pool_size: 5,
   pool: Ecto.Adapters.SQL.Sandbox
 

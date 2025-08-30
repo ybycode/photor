@@ -56,3 +56,8 @@ From https://blog.logrocket.com/responsive-image-gallery-css-flexbox/
   align-items: center;
   justify-content: center;
 }
+
+.image-gallery .overlay img.preview {
+  max-width: 100vw;
+  max-height: 100vh;
+}

@@ -1,4 +1,4 @@
-defmodule Photor.Photos.ThumbnailMagick do
+defmodule Photor.Photos.Thumbnails.ThumbnailMagick do
   @moduledoc """
   Implementation of thumbnail generation using ImageMagick and cjpeg.
   """

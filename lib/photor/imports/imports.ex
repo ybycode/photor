@@ -4,6 +4,7 @@ defmodule Photor.Imports do
   alias Photor.Imports.ImportSession
   alias Photor.Imports.ImportSupervisor
   alias Photor.Imports.Importer
+  alias Photor.Jobs.JobsRunner
   alias Photor.Repo
   alias Phoenix.PubSub
 
@@ -32,6 +33,9 @@ defmodule Photor.Imports do
               [],
               fn event -> ImportSession.process_event(import.id, event) end
             )
+
+          # now add a job to create thumbnails:
+          {:ok, _job} = JobsRunner.add_job(Photor.Photos.Thumbnails.Job)
         end)
 
         {:ok, import}

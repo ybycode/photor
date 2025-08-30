@@ -10,14 +10,15 @@
       id="gallery-overlay"
       phx-hook="PreviewKeyboardNavigation"
     >
-      <img src={photo_url_preview(@photos, @previewed_photo_index)} />
+      <img class="preview" src={photo_url_preview(@photos, @previewed_photo_index)} />
     </div>
   <% end %>
+
   <ul>
-    <%= for {_photo, photo_index} <- Enum.with_index(@photos) do %>
+    <%= for {photo, photo_index} <- Enum.with_index(@photos) do %>
       <li>
         <a phx-click="open-preview" phx-value-photo-index={photo_index}>
-          <img src={photo_url_preview(@photos, photo_index)} />
+          <img src={photo.medium} />
         </a>
       </li>
     <% end %>

@@ -63,7 +63,7 @@ mixRelease {
   mixFodDeps = fetchMixDeps {
     pname = "mix-deps-${pname}";
     inherit src version elixir;
-    hash = "sha256-oR1CjnjIPdpb+n7HrDqxsHdkhQpdap/k9AyR0ntZdKI=";
+    hash = "sha256-cHP4pS6ZTB4kN0bONA3C/cHem6HeM/OMVyY0X4b2o7U=";
     nativeBuildInputs = [ cacert stdenv ];
     HEX_CACERTS_PATH = "${cacert}/etc/ssl/certs/ca-bundle.crt";
 

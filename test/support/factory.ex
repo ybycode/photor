@@ -5,6 +5,7 @@ defmodule Photor.Factory do
 
   alias Photor.Photos.Photo
   alias Photor.Imports.Import
+  alias Photor.Photos.Thumbnails.Thumbnail
 
   def photo_factory do
     %Photo{
@@ -18,5 +19,14 @@ defmodule Photor.Factory do
 
   def import_factory do
     %Import{}
+  end
+
+  def thumbnail_factory do
+    %Thumbnail{
+      height: sequence(:height, [100, 400, 1200]),
+      width: sequence(:height, [100, 400, 1200]),
+      size_name: sequence(:size_name, ["small", "medium", "large"]),
+      photo: build(:photo)
+    }
   end
 end
