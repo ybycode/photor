@@ -2,40 +2,29 @@
 #
 #   $ nix-build -E '
 #       with import <nixpkgs> {};
-#       callPackage ./default.nix {
-#         inherit (beamPackages) fetchMixDeps mixRelease;
-#       }
+#       callPackage ./default.nix { }
 #     '
 {
   lib,
   pkgs,
   cacert,
   fetchFromGitHub,
-  fetchMixDeps,
-  mixRelease,
+  beamPackages,
   nix-update-script,
   stdenv,
+  tailwindcss_3,
+  esbuild,
 }:
 
 let
+
   pname = "photor-ex";
-  version = "0.5.4";
+  version = "0.6.0";
   elixir = pkgs.elixir_1_18;
   src = ./.;
-  # src = builtins.path {
-  #   path = ./.;
-  #   name = "${pname}-src";
-  #   filter = path: type:
-  #     builtins.baseNameOf path != "deps";
-  # };
-  # src = fetchFromGitHub {
-  #   owner = "ybycode";
-  #   repo = "elixir-ls";
-  #   rev = "v${version}";
-  #   hash = "sha256-y1QT+wRFc+++OVFJwEheqcDIwaKHlyjbhEjhLJ2rYaI=";
-  # };
-in
-mixRelease {
+  runtimeDeps = with pkgs; [ bash exiftool imagemagick mozjpeg ];
+
+in beamPackages.mixRelease {
   inherit
     pname
     version
@@ -45,11 +34,31 @@ mixRelease {
 
   removeCookie = false;
 
-  # required for exqlite:
-  buildInputs = [ stdenv ];  # Or [ stdenv.cc ] if you only need compiler
+  buildInputs = [
+      # required for exqlite's compilation:
+      stdenv # Or [ stdenv.cc ] if you only need compiler
+    ];
 
   prePatch = ''
     rm -rf deps || true
+  '';
+
+  # this forces nixos executables of tailwind and esbuild in the configuration
+  # of the project. They're both needed to build the assets of the phoenix app.
+  # See nix packages of `plausible` and `firezone-server` where this is used the
+  # same way.
+  preBuild = ''
+    cat >> config/config.exs <<EOF
+    config :tailwind, path: "${lib.getExe tailwindcss_3}"
+    config :esbuild, path: "${lib.getExe esbuild}"
+    EOF
+  '';
+
+  postBuild = ''
+    # for external task you need a workaround for the no deps check flag
+    # https://github.com/phoenixframework/phoenix/issues/2690
+    mix do deps.loadpaths --no-deps-check, assets.deploy
+    mix do deps.loadpaths --no-deps-check, phx.digest priv/static
   '';
 
   # Set required environment variables
@@ -60,7 +69,7 @@ mixRelease {
 
   stripDebug = true;
 
-  mixFodDeps = fetchMixDeps {
+  mixFodDeps = beamPackages.fetchMixDeps {
     pname = "mix-deps-${pname}";
     inherit src version elixir;
     hash = "sha256-cHP4pS6ZTB4kN0bONA3C/cHem6HeM/OMVyY0X4b2o7U=";
@@ -71,8 +80,15 @@ mixRelease {
     preBuild = ''
       # Remove existing deps directory if present
       rm -rf deps
+      # build the assets:
+      mix assets.deploy
     '';
   };
+
+  postInstall = ''
+    wrapProgram $out/bin/server \
+      --prefix PATH : ${pkgs.lib.makeBinPath runtimeDeps}
+  '';
 
   meta = with lib; {
     homepage = "https://github.com/ybycode/photor";
