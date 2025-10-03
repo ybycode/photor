@@ -1,0 +1,34 @@
+#!/bin/sh
+set -eu
+
+cd -P -- "$(dirname -- "$0")"
+
+if [ -z "${PHOTOR_DIR:-}" ]; then
+  >&2 echo "PHOTOR_DIR env variable not set, exiting."
+  exit 1
+fi
+
+if [ $# -lt 1 ]; then
+  >&2 echo "USAGE: $0 COMMAND where COMMAND in 'server', 'migrate'."
+  exit 2
+fi
+
+command="$1"
+shift
+
+case "$command" in
+
+  server)
+    PHX_SERVER=true exec ./photor_entrypoint start
+    ;;
+
+  migrate)
+    exec ./photor_entrypoint eval Photor.Release.migrate
+    ;;
+
+  *)
+    >&2 echo "ERROR: unknown command."
+    exit 3
+    ;;
+esac
+

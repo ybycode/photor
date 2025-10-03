@@ -10,8 +10,14 @@ defmodule Photor.MixProject do
       start_permanent: Mix.env() == :prod,
       aliases: aliases(),
       deps: deps(),
+      # releases: [
+      #   photor_ex: [
+      #     include_executables_for: [:unix]
+      #   ]
+      # ]
       releases: [
-        photor_ex: [
+        photor_entrypoint: [
+          applications: [photor: :permanent],
           include_executables_for: [:unix]
         ]
       ]
