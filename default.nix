@@ -86,7 +86,7 @@ in beamPackages.mixRelease {
   };
 
   postInstall = ''
-    wrapProgram $out/bin/server \
+    wrapProgram $out/bin/photor \
       --prefix PATH : ${pkgs.lib.makeBinPath runtimeDeps}
   '';
 
