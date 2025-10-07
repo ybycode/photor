@@ -3,14 +3,15 @@ set -eu
 
 cd -P -- "$(dirname -- "$0")"
 
-if [ -z "${PHOTOR_DIR:-}" ]; then
-  >&2 echo "PHOTOR_DIR env variable not set, exiting."
-  exit 1
-fi
+die() {
+  message="$1"
+  err_code=${2:-1}
+  >&2 echo "$message"
+  exit "$err_code"
+}
 
 if [ $# -lt 1 ]; then
-  >&2 echo "USAGE: $0 COMMAND where COMMAND in 'server', 'migrate'."
-  exit 2
+  die "USAGE: $0 COMMAND where COMMAND in 'server', 'migrate', 'import'." 1
 fi
 
 command="$1"
@@ -19,16 +20,35 @@ shift
 case "$command" in
 
   server)
+    if [ -z "${PHOTOR_DIR:-}" ]; then
+      die "PHOTOR_DIR env variable not set, exiting." 2
+    fi
+
     PHX_SERVER=true exec ./photor_entrypoint start
     ;;
 
   migrate)
+    if [ -z "${PHOTOR_DIR:-}" ]; then
+      die "PHOTOR_DIR env variable not set, exiting." 2
+    fi
+
     exec ./photor_entrypoint eval Photor.Release.migrate
     ;;
 
+  import)
+    if [ $# -lt 1 ]; then
+      die "USAGE: import DIRECTORY" 3
+    fi
+
+    directory="$1"
+
+    if [ -z "$directory" ]; then
+      die "Error: argument DIRECTORY expected" 4
+    fi
+    exec ./photor_entrypoint rpc "Photor.Commands.import_directory(\"$directory\")"
+    ;;
+
   *)
-    >&2 echo "ERROR: unknown command."
-    exit 3
+    die "ERROR: unknown command."
     ;;
 esac
-
