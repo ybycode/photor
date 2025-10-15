@@ -17,26 +17,26 @@ defmodule Photor.Imports do
   Starts a new import from the given source directory.
   Returns {:ok, import} if successful.
   """
-  def start_import(source_dir) do
+  def import_directory(source_dir, importer_fn \\ &Importer.import_directory/4) do
     # Create a new import record
     import = Import.new_changeset() |> Repo.insert!()
 
     # Start a new import session
     case ImportSupervisor.start_import_session(import) do
       {:ok, _pid} ->
-        # Start the import process in a separate task
-        Task.start(fn ->
-          :ok =
-            Importer.import_directory(
-              import,
-              source_dir,
-              [],
-              fn event -> ImportSession.process_event(import.id, event) end
-            )
+        :ok =
+          importer_fn.(
+            import,
+            source_dir,
+            [],
+            fn event -> ImportSession.process_event(import.id, event) end
+          )
 
-          # now add a job to create thumbnails:
-          {:ok, _job} = JobsRunner.add_job(Photor.Photos.Thumbnails.Job)
-        end)
+        # now add a job to create thumbnails:
+        # TODO: this creates flaky tests, which fail if the test lives long
+        # enough for the jobs to run. To fix this we need to make it so that
+        # jobs don't run by default in tests.
+        {:ok, _job} = JobsRunner.add_job(Photor.Photos.Thumbnails.Job)
 
         {:ok, import}
 
@@ -51,7 +51,7 @@ defmodule Photor.Imports do
   end
 
   @doc """
-  Subscribe to events for a specific import.
+  Get all info of all existing imports.
   """
   def get_all_imports_info() do
     # the current state of all ongoing imports is fetched:

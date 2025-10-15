@@ -123,6 +123,8 @@ defmodule Photor.Imports.Importer do
         {:new, {path, partial_hash, file_stat.size}}
       end
     else
+      # TODO: what about the case where can_read_file/1 is false?
+
       # just return well formed errors as is:
       {:error, _reason} = e ->
         e

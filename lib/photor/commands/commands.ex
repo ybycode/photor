@@ -1,5 +1,5 @@
 defmodule Photor.Commands do
   alias Photor.Imports
 
-  def import_directory(directory), do: Imports.start_import(directory)
+  def import_directory(directory), do: Imports.import_directory(directory)
 end

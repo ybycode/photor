@@ -66,7 +66,7 @@ defmodule Photor.Imports.ImportSession do
   """
   def process_event(import_id, event) do
     case ImportRegistry.lookup_session(import_id) do
-      {:ok, pid} -> GenServer.call(pid, {:event, event})
+      {:ok, pid} -> GenServer.call(pid, {:process_event, event})
       {:error, :not_found} -> {:error, :not_found}
     end
   end
@@ -110,7 +110,7 @@ defmodule Photor.Imports.ImportSession do
   end
 
   @impl true
-  def handle_call({:event, event}, _from, state) do
+  def handle_call({:process_event, event}, _from, state) do
     s = process_import_event(event, state)
     new_state = update_in(s.last_event_id, &(&1 + 1))
 
