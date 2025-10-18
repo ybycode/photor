@@ -61,3 +61,33 @@ From https://blog.logrocket.com/responsive-image-gallery-css-flexbox/
   max-width: 100vw;
   max-height: 100vh;
 }
+
+.image-gallery .overlay .preview-container {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.image-gallery .overlay .preview-actions {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  display: flex;
+  gap: 1rem;
+}
+
+.image-gallery .overlay .preview-actions a {
+  color: white;
+  background: rgba(0, 0, 0, 0.5);
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  text-decoration: none;
+  font-size: 0.9rem;
+  transition: background 0.2s;
+}
+
+.image-gallery .overlay .preview-actions a:hover {
+  background: rgba(0, 0, 0, 0.8);
+}
+

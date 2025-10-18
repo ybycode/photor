@@ -13,4 +13,8 @@ defmodule Photor.Photos do
       |> Photo.only_jpeg()
       |> Photo.load_thumbnails()
       |> Repo.all()
+
+  def make_photo_path(%Photo{directory: directory, filename: filename}) do
+    Path.join([directory, filename])
+  end
 end

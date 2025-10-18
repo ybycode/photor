@@ -3,14 +3,25 @@
 <.link patch={~p"/albums/"}>Back to index</.link>
 
 <div class="image-gallery">
-  <%= if(not is_nil(@previewed_photo_index)) do %>
+  <%= if not is_nil(@previewed_photo_index) do %>
     <div
       class="overlay"
       phx-click="hide-preview"
       id="gallery-overlay"
       phx-hook="PreviewKeyboardNavigation"
     >
-      <img class="preview" src={photo_url_preview(@photos, @previewed_photo_index)} />
+      <div class="preview-container" phx-click="stop-propagation">
+        <img class="preview" src={photo_url_preview(@photos, @previewed_photo_index)} />
+
+        <div class="preview-actions">
+          <.link href={photo_url_original(@photos, @previewed_photo_index)} target="_blank">
+            Open in new tab
+          </.link>
+          <.link href={photo_url_original(@photos, @previewed_photo_index)} download>
+            Download
+          </.link>
+        </div>
+      </div>
     </div>
   <% end %>
 
