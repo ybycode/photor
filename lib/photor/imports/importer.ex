@@ -3,6 +3,8 @@ defmodule Photor.Imports.Importer do
   Handles importing files into the Photor repository with proper organization.
   """
 
+  require Logger
+
   alias Photor.Files.Scanner
   alias Photor.Hasher
   alias Photor.Imports.Events
@@ -82,17 +84,35 @@ defmodule Photor.Imports.Importer do
       Application.fetch_env!(:photor, :partial_hash_nb_bytes)
       |> String.to_integer()
 
-    Enum.reduce(files, [], fn %{path: path}, acc ->
+    Enum.reduce(files, %{}, fn %{path: path}, acc ->
       case file_check(path, partial_hash_nb_bytes) do
-        {:new, {_path, _partial_hash, _size} = file_info} ->
-          emit(event_fn, %Events.FileNotYetInRepoFound{
-            import_id: import_id,
-            path: path
-          })
+        {:new, {_path, partial_hash, _size} = file_info} ->
+          # TODO: test this if/else branching here
+          # This fixes a bug where 2 duplicated files (same partial hash) are
+          # in the import directory. Since all partial hash checks were
+          # performed against values in the DB, and new imports are only
+          # inserted after all file checks, duplicated files in the import dir
+          # were considered new and all imported (instead of importing one and
+          # ignoring the others).
+          if duplicate_of = Map.get(acc, partial_hash) do
+            emit(event_fn, %Events.DuplicateFileInSourceIgnored{
+              import_id: import_id,
+              path: path,
+              path_same_partial_hash: duplicate_of
+            })
 
-          [file_info | acc]
+            acc
+          else
+            emit(event_fn, %Events.FileNotYetInRepoFound{
+              import_id: import_id,
+              path: path
+            })
 
-        :already_imported ->
+            [file_info | acc]
+            Map.put(acc, partial_hash, file_info)
+          end
+
+        :already_in_database ->
           emit(event_fn, %Events.FileAlreadyInRepoFound{
             import_id: import_id,
             path: path
@@ -111,6 +131,7 @@ defmodule Photor.Imports.Importer do
           #   acc
       end
     end)
+    |> Map.values()
   end
 
   defp file_check(path, nb_bytes) do
@@ -118,7 +139,7 @@ defmodule Photor.Imports.Importer do
          true <- can_read_file(file_stat),
          {:ok, partial_hash} <- Hasher.hash_file_first_bytes(path, nb_bytes) do
       if PhotoOperations.photo_exists_by_partial_hash?(partial_hash) do
-        :already_imported
+        :already_in_database
       else
         {:new, {path, partial_hash, file_stat.size}}
       end
@@ -234,23 +255,29 @@ defmodule Photor.Imports.Importer do
       # Use a temporary filename during copy
       temp_destination = "#{destination}.tmp"
 
-      result =
-        case copy_strategy do
-          :copy ->
-            File.cp(source, temp_destination)
+      case copy_strategy do
+        :copy ->
+          File.cp(source, temp_destination)
 
-          :move ->
-            # For move, we need to copy first then delete the original
-            with :ok <- File.cp(source, temp_destination),
-                 :ok <- File.rm(source) do
-              :ok
-            end
-        end
+        :move ->
+          # For move, we need to copy first then delete the original
+          with :ok <- File.cp(source, temp_destination),
+               :ok <- File.rm(source) do
+            :ok
+          end
+      end
+      |> case do
+        :ok ->
+          # If copy was successful, rename to final filename
+          :ok = File.rename(temp_destination, destination)
 
-      # If copy was successful, rename to final filename
-      case result do
-        :ok -> File.rename(temp_destination, destination)
-        error -> error
+        {:error, :eacces} ->
+          Logger.error("Failed to copy #{source} to #{destination}: EACCES (permission denied)")
+          {:error, :eacces}
+
+        {:error, reason} ->
+          Logger.error("Failed to copy #{source} to #{destination}: #{inspect(reason)}")
+          {:error, reason}
       end
     end
   end

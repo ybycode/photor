@@ -23,6 +23,11 @@ defmodule Photor.Imports.Events do
     defstruct [:import_id, :path]
   end
 
+  defmodule DuplicateFileInSourceIgnored do
+    # TODO: find a better name, or rename the FilesFound event.
+    defstruct [:import_id, :path, :path_same_partial_hash]
+  end
+
   defmodule FileAlreadyInRepoFound do
     defstruct [:import_id, :path]
   end

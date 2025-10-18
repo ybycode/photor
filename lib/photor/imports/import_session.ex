@@ -187,6 +187,19 @@ defmodule Photor.Imports.ImportSession do
     }
   end
 
+  defp process_import_event(%Events.DuplicateFileInSourceIgnored{path: path}, state) do
+    # Update the status of the file to :skipped
+    state =
+      update_in(state.files[path], fn file_import ->
+        %{file_import | status: :skipped}
+      end)
+
+    %{
+      state
+      | nb_files_skipped: state.nb_files_skipped + 1
+    }
+  end
+
   defp process_import_event(%Events.ImportStarted{}, state) do
     %{state | import_status: :files_import}
   end
@@ -221,12 +234,16 @@ defmodule Photor.Imports.ImportSession do
 
   defp process_import_event(%Events.FileImportError{path: path, reason: _reason}, state) do
     # Update the status of the file to :error
-    new_files =
-      update_in(state.files[path], fn file_import ->
-        %{file_import | status: :error}
-      end)
+    # TODO: something is wrong with this function clause, which leaves the
+    # state in a shape that get_and_update_in then refuses to compute.
+    # new_files =
+    #   update_in(state.files[path], fn file_import ->
+    #     %{file_import | status: :error}
+    #   end)
 
-    %{state | files: new_files}
+    # %{state | files: new_files}
+
+    state
   end
 
   defp process_import_event(%Events.ImportFinished{}, state) do

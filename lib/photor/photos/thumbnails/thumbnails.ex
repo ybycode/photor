@@ -213,7 +213,8 @@ defmodule Photor.Photos.Thumbnails do
          ) do
       :done ->
         # nothing to do
-        nil
+        # TODO: branch untested
+        :ok
 
       {missing_thumbnails, photo_next_chunk_first_id} ->
         photor_dir =
@@ -250,7 +251,6 @@ defmodule Photor.Photos.Thumbnails do
                   make_thumbnail_path(directory, filename, size_name)
                 )
 
-              # returns ok
               try do
                 create_thumbnail_fn.(size_name, photo_input_path, thumbnail_path)
               rescue
