@@ -10,14 +10,22 @@
       id="gallery-overlay"
       phx-hook="PreviewKeyboardNavigation"
     >
-      <div class="preview-container" phx-click="stop-propagation">
+      <div class="preview-container">
         <img class="preview" src={photo_url_preview(@photos, @previewed_photo_index)} />
 
         <div class="preview-actions">
-          <.link href={photo_url_original(@photos, @previewed_photo_index)} target="_blank">
+          <.link
+            href={photo_url_original(@photos, @previewed_photo_index)}
+            target="_blank"
+            onclick="event.stopPropagation()"
+          >
             Open in new tab
           </.link>
-          <.link href={photo_url_original(@photos, @previewed_photo_index)} download>
+          <.link
+            href={photo_url_original(@photos, @previewed_photo_index)}
+            onclick="event.stopPropagation()"
+            download
+          >
             Download
           </.link>
         </div>

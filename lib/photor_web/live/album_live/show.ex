@@ -26,7 +26,10 @@ defmodule PhotorWeb.AlbumsLive.Show do
         {:ok, assign(socket, date: date_str, photos: photos, previewed_photo_index: nil)}
 
       {:error, _} ->
-        {:ok, socket |> put_flash(:error, "Invalid date") |> assign(date: "", photos: [])}
+        {:ok,
+         socket
+         |> put_flash(:error, "Invalid date")
+         |> assign(date: "", photos: [], previewed_photo_index: nil)}
     end
   end
 
