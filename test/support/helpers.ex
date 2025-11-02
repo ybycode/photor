@@ -121,19 +121,19 @@ defmodule Photor.TestHelpers do
       },
       %Photor.Imports.Events.FileImporting{
         import_id: import.id,
-        path: "test/assets/import_source/sub1/sub2/photo3.jpg"
+        path: "test/assets/import_source/sub1/photo2.jpg"
       },
       %Photor.Imports.Events.FileImported{
         import_id: import.id,
-        path: "test/assets/import_source/sub1/sub2/photo3.jpg"
+        path: "test/assets/import_source/sub1/photo2.jpg"
       },
       %Photor.Imports.Events.FileImporting{
         import_id: import.id,
-        path: "test/assets/import_source/sub1/photo2.jpg"
+        path: "test/assets/import_source/sub1/sub2/photo3.jpg"
       },
       %Photor.Imports.Events.FileImported{
         import_id: import.id,
-        path: "test/assets/import_source/sub1/photo2.jpg"
+        path: "test/assets/import_source/sub1/sub2/photo3.jpg"
       },
       %Photor.Imports.Events.ImportFinished{import_id: import.id}
     ]

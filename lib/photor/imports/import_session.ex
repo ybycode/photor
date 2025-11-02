@@ -232,7 +232,7 @@ defmodule Photor.Imports.ImportSession do
     }
   end
 
-  defp process_import_event(%Events.FileImportError{path: path, reason: _reason}, state) do
+  defp process_import_event(%Events.FileImportError{path: _path, reason: _reason}, state) do
     # Update the status of the file to :error
     # TODO: something is wrong with this function clause, which leaves the
     # state in a shape that get_and_update_in then refuses to compute.

@@ -108,7 +108,6 @@ defmodule Photor.Imports.Importer do
               path: path
             })
 
-            [file_info | acc]
             Map.put(acc, partial_hash, file_info)
           end
 
@@ -170,7 +169,7 @@ defmodule Photor.Imports.Importer do
       with :ok <- ensure_directory(destination_dir),
            :ok <- copy_file(path, destination_path),
            # Handle database insertion result properly
-           {:ok, _photo} <-
+           {:ok, photo} <-
              PhotoOperations.insert_from_metadata(
                import,
                metadata,
@@ -179,6 +178,8 @@ defmodule Photor.Imports.Importer do
                partial_hash,
                size
              ) do
+        Logger.info("Successfully imported #{path} to #{destination_path} (id: #{photo.id})")
+
         emit(event_fn, %Events.FileImported{
           import_id: import.id,
           path: path
@@ -191,16 +192,23 @@ defmodule Photor.Imports.Importer do
           # Clean up the copied file since the database insertion failed
           _ = File.rm(destination_path)
 
+          error_message =
+            "Failed to import #{path}: database insertion failed: #{inspect(changeset.errors)}"
+
+          Logger.error(error_message)
+
           emit(event_fn, %Events.FileImportError{
             import_id: import.id,
             path: path,
-            reason: "Database insertion failed: #{inspect(changeset.errors)}"
+            reason: error_message
           })
 
           {:error, "Database insertion failed: #{inspect(changeset.errors)}"}
 
         # Handle other errors from previous steps
         {:error, reason} ->
+          Logger.error("Failed to import #{path}: #{inspect(reason)}")
+
           emit(event_fn, %Events.FileImportError{
             import_id: import.id,
             path: path,
@@ -211,10 +219,15 @@ defmodule Photor.Imports.Importer do
       end
     else
       {:error, reason} ->
+        error_message =
+          "Failed to read the file's metadata (for file at: #{path}): #{inspect(reason)}"
+
+        Logger.error(error_message)
+
         emit(event_fn, %Events.FileImportError{
           import_id: import.id,
           path: path,
-          reason: "Failed to read the file's metadata: #{inspect(reason)}"
+          reason: error_message
         })
     end
   end
