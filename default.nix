@@ -20,7 +20,7 @@ let
 
   pname = "photor-ex";
   version = "0.6.0";
-  elixir = pkgs.elixir_1_18;
+  elixir = pkgs.elixir_1_19;
   src = ./.;
   runtimeDeps = with pkgs; [ bash exiftool imagemagick mozjpeg ];
 
