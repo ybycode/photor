@@ -62,10 +62,8 @@ in beamPackages.mixRelease {
   '';
 
   # Set required environment variables
-  MIX_ENV = "prod";
   HOME = "$TMPDIR";  # Crucial for Nix builds
   HEX_CACERTS_PATH = "${cacert}/etc/ssl/certs/ca-bundle.crt";
-  ERL_COMPILER_OPTIONS = "deterministic";  # For NIF compatibility
 
   stripDebug = true;
 
